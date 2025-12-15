@@ -29,7 +29,7 @@ export default function Header() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold">Navigation</h2>
+          <div></div>
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"

@@ -132,7 +132,7 @@ function App() {
                 to="/debts"
                 className="text-blue-400 hover:text-blue-300 underline"
               >
-                첫 빚을 추가해보세요
+                빚 추가
               </Link>
             </div>
           ) : (
