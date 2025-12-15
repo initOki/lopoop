@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Wallet, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import type { Debt } from './types/debt'
 import { supabase } from './lib/supabase'
 
