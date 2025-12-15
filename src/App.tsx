@@ -110,12 +110,12 @@ function App() {
   }
 
   // 통계 계산
-  const totalDebts = debts.length
-  const unpaidDebts = debts.filter((d) => !d.isPaid).length
-  const paidDebts = debts.filter((d) => d.isPaid).length
-  const totalAmount = debts
-    .filter((d) => !d.isPaid && d.amount)
-    .reduce((sum, d) => sum + (d.amount || 0), 0)
+  // const totalDebts = debts.length
+  // const unpaidDebts = debts.filter((d) => !d.isPaid).length
+  // const paidDebts = debts.filter((d) => d.isPaid).length
+  // const totalAmount = debts
+  //   .filter((d) => !d.isPaid && d.amount)
+  //   .reduce((sum, d) => sum + (d.amount || 0), 0)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
