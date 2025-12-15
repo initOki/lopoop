@@ -34,6 +34,12 @@ const indexRoute = createRoute({
   component: App,
 })
 
+const scheduleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/schedule',
+  component: DebtPage,
+})
+
 const debtRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/debts',
