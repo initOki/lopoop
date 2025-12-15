@@ -29,9 +29,66 @@ export default function DebtPage() {
     description: '',
   })
 
-  // Supabase에서 빚 목록 가져오기
+  // Supabase에서 빚 목록 가져오기 및 실시간 구독
   useEffect(() => {
     fetchDebts()
+
+    // Supabase 실시간 구독 설정
+    const channel = supabase
+      .channel('debts-page-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          schema: 'public',
+          table: 'debts',
+        },
+        (payload) => {
+          console.log('Real-time change detected in DebtPage:', payload)
+
+          if (payload.eventType === 'INSERT') {
+            const newRow = payload.new as DebtRow
+            const newDebt: Debt = {
+              id: newRow.id,
+              debtor: newRow.debtor,
+              creditor: newRow.creditor,
+              amount: newRow.amount ?? undefined,
+              item: newRow.item ?? undefined,
+              description: newRow.description ?? undefined,
+              createdAt: new Date(newRow.created_at),
+              isPaid: newRow.is_paid,
+            }
+            setDebts((prev) => [newDebt, ...prev])
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedRow = payload.new as DebtRow
+            setDebts((prev) =>
+              prev.map((debt) =>
+                debt.id === updatedRow.id
+                  ? {
+                      id: updatedRow.id,
+                      debtor: updatedRow.debtor,
+                      creditor: updatedRow.creditor,
+                      amount: updatedRow.amount ?? undefined,
+                      item: updatedRow.item ?? undefined,
+                      description: updatedRow.description ?? undefined,
+                      createdAt: new Date(updatedRow.created_at),
+                      isPaid: updatedRow.is_paid,
+                    }
+                  : debt,
+              ),
+            )
+          } else if (payload.eventType === 'DELETE') {
+            const deletedRow = payload.old as DebtRow
+            setDebts((prev) => prev.filter((debt) => debt.id !== deletedRow.id))
+          }
+        },
+      )
+      .subscribe()
+
+    // 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const fetchDebts = async () => {
