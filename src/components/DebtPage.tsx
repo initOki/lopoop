@@ -131,36 +131,18 @@ export default function DebtPage() {
     } else {
       // 추가 모드
       try {
-        const { data, error } = await supabase
-          .from('debts')
-          .insert({
-            debtor: formData.debtor,
-            creditor: formData.creditor,
-            amount: formData.amount ? parseFloat(formData.amount) : null,
-            item: formData.item || null,
-            description: formData.description || null,
-          })
-          .select()
-          .single()
+        const { error } = await supabase.from('debts').insert({
+          debtor: formData.debtor,
+          creditor: formData.creditor,
+          amount: formData.amount ? parseFloat(formData.amount) : null,
+          item: formData.item || null,
+          description: formData.description || null,
+        })
 
         if (error) throw error
 
-        if (data) {
-          const debtRow = data as DebtRow
-          const newDebt: Debt = {
-            id: debtRow.id,
-            debtor: debtRow.debtor,
-            creditor: debtRow.creditor,
-            amount: debtRow.amount ?? undefined,
-            item: debtRow.item ?? undefined,
-            description: debtRow.description ?? undefined,
-            createdAt: new Date(debtRow.created_at),
-            isPaid: debtRow.is_paid,
-          }
-
-          setDebts([newDebt, ...debts])
-          toast.success('빚이 추가되었습니다.')
-        }
+        // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
+        toast.success('빚이 추가되었습니다.')
 
         setFormData({
           debtor: '',
@@ -181,7 +163,7 @@ export default function DebtPage() {
     if (!editingDebt) return
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('debts')
         .update({
           debtor: formData.debtor,
@@ -191,31 +173,11 @@ export default function DebtPage() {
           description: formData.description || null,
         })
         .eq('id', editingDebt.id)
-        .select()
-        .single()
 
       if (error) throw error
 
-      if (data) {
-        const debtRow = data as DebtRow
-        const updatedDebt: Debt = {
-          id: debtRow.id,
-          debtor: debtRow.debtor,
-          creditor: debtRow.creditor,
-          amount: debtRow.amount ?? undefined,
-          item: debtRow.item ?? undefined,
-          description: debtRow.description ?? undefined,
-          createdAt: new Date(debtRow.created_at),
-          isPaid: debtRow.is_paid,
-        }
-
-        setDebts(
-          debts.map((debt) =>
-            debt.id === updatedDebt.id ? updatedDebt : debt,
-          ),
-        )
-        toast.success('빚이 수정되었습니다.')
-      }
+      // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
+      toast.success('빚이 수정되었습니다.')
 
       setFormData({
         debtor: '',
@@ -262,7 +224,7 @@ export default function DebtPage() {
 
       if (error) throw error
 
-      setDebts(debts.filter((debt) => debt.id !== id))
+      // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
       toast.success('빚이 삭제되었습니다.')
     } catch (error) {
       console.error('Error deleting debt:', error)
@@ -282,11 +244,7 @@ export default function DebtPage() {
 
       if (error) throw error
 
-      setDebts(
-        debts.map((debt) =>
-          debt.id === id ? { ...debt, isPaid: !debt.isPaid } : debt,
-        ),
-      )
+      // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
       toast.success(
         debt.isPaid ? '미납으로 변경되었습니다.' : '갚음으로 표시되었습니다.',
       )
