@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, X } from 'lucide-react'
+import { Plus, Trash2, Check, X, Edit2 } from 'lucide-react'
 import type { Debt } from '../types/debt'
 import { supabase } from '../lib/supabase'
 
@@ -19,6 +19,7 @@ export default function DebtPage() {
   const [debts, setDebts] = useState<Debt[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
   const [formData, setFormData] = useState({
     debtor: '',
     creditor: '',
@@ -66,16 +67,71 @@ export default function DebtPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (editingDebt) {
+      // 수정 모드
+      await handleUpdate()
+    } else {
+      // 추가 모드
+      try {
+        const { data, error } = await supabase
+          .from('debts')
+          .insert({
+            debtor: formData.debtor,
+            creditor: formData.creditor,
+            amount: formData.amount ? parseFloat(formData.amount) : null,
+            item: formData.item || null,
+            description: formData.description || null,
+          })
+          .select()
+          .single()
+
+        if (error) throw error
+
+        if (data) {
+          const debtRow = data as DebtRow
+          const newDebt: Debt = {
+            id: debtRow.id,
+            debtor: debtRow.debtor,
+            creditor: debtRow.creditor,
+            amount: debtRow.amount ?? undefined,
+            item: debtRow.item ?? undefined,
+            description: debtRow.description ?? undefined,
+            createdAt: new Date(debtRow.created_at),
+            isPaid: debtRow.is_paid,
+          }
+
+          setDebts([newDebt, ...debts])
+        }
+
+        setFormData({
+          debtor: '',
+          creditor: '',
+          amount: '',
+          item: '',
+          description: '',
+        })
+        setIsFormOpen(false)
+      } catch (error) {
+        console.error('Error creating debt:', error)
+        alert('빚을 추가하는데 실패했습니다.')
+      }
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!editingDebt) return
+
     try {
       const { data, error } = await supabase
         .from('debts')
-        .insert({
+        .update({
           debtor: formData.debtor,
           creditor: formData.creditor,
           amount: formData.amount ? parseFloat(formData.amount) : null,
           item: formData.item || null,
           description: formData.description || null,
         })
+        .eq('id', editingDebt.id)
         .select()
         .single()
 
@@ -83,7 +139,7 @@ export default function DebtPage() {
 
       if (data) {
         const debtRow = data as DebtRow
-        const newDebt: Debt = {
+        const updatedDebt: Debt = {
           id: debtRow.id,
           debtor: debtRow.debtor,
           creditor: debtRow.creditor,
@@ -94,7 +150,11 @@ export default function DebtPage() {
           isPaid: debtRow.is_paid,
         }
 
-        setDebts([newDebt, ...debts])
+        setDebts(
+          debts.map((debt) =>
+            debt.id === updatedDebt.id ? updatedDebt : debt,
+          ),
+        )
       }
 
       setFormData({
@@ -105,10 +165,35 @@ export default function DebtPage() {
         description: '',
       })
       setIsFormOpen(false)
+      setEditingDebt(null)
     } catch (error) {
-      console.error('Error creating debt:', error)
-      alert('빚을 추가하는데 실패했습니다.')
+      console.error('Error updating debt:', error)
+      alert('빚을 수정하는데 실패했습니다.')
     }
+  }
+
+  const handleEdit = (debt: Debt) => {
+    setEditingDebt(debt)
+    setFormData({
+      debtor: debt.debtor,
+      creditor: debt.creditor,
+      amount: debt.amount?.toString() || '',
+      item: debt.item || '',
+      description: debt.description || '',
+    })
+    setIsFormOpen(true)
+  }
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false)
+    setEditingDebt(null)
+    setFormData({
+      debtor: '',
+      creditor: '',
+      amount: '',
+      item: '',
+      description: '',
+    })
   }
 
   const handleDelete = async (id: string) => {
@@ -232,6 +317,13 @@ export default function DebtPage() {
                       {debt.isPaid ? <X size={20} /> : <Check size={20} />}
                     </button>
                     <button
+                      onClick={() => handleEdit(debt)}
+                      className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
+                      title="수정"
+                    >
+                      <Edit2 size={20} />
+                    </button>
+                    <button
                       onClick={() => handleDelete(debt.id)}
                       className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
                       title="삭제"
@@ -249,7 +341,9 @@ export default function DebtPage() {
         {isFormOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-2xl font-bold mb-4">새 빚 추가</h2>
+              <h2 className="text-2xl font-bold mb-4">
+                {editingDebt ? '빚 수정' : '새 빚 추가'}
+              </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -333,20 +427,11 @@ export default function DebtPage() {
                     type="submit"
                     className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    추가
+                    {editingDebt ? '수정' : '추가'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsFormOpen(false)
-                      setFormData({
-                        debtor: '',
-                        creditor: '',
-                        amount: '',
-                        item: '',
-                        description: '',
-                      })
-                    }}
+                    onClick={handleCloseForm}
                     className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
                   >
                     취소
