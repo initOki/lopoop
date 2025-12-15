@@ -14,7 +14,7 @@ interface DebtRow {
   is_paid: boolean
 }
 
-function App() {
+export default function App() {
   const [debts, setDebts] = useState<Debt[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -235,5 +235,3 @@ function App() {
     </div>
   )
 }
-
-export default App

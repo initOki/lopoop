@@ -10,12 +10,11 @@ import {
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { Toaster } from 'sonner'
 
-import './styles.css'
-import reportWebVitals from './reportWebVitals.ts'
-
-import App from './App.tsx'
+import './styles/globals.css'
 import DebtPage from './components/DebtPage.tsx'
 import Header from './components/Header.tsx'
+import SchedulePage from './components/SchedulePage.tsx'
+import App from './App.tsx'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -28,6 +27,7 @@ const rootRoute = createRootRoute({
   ),
 })
 
+// Index Route (/)
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -37,7 +37,7 @@ const indexRoute = createRoute({
 const scheduleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/schedule',
-  component: DebtPage,
+  component: SchedulePage,
 })
 
 const debtRoute = createRoute({
@@ -46,34 +46,29 @@ const debtRoute = createRoute({
   component: DebtPage,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, debtRoute])
+const routeTree = rootRoute.addChildren([indexRoute, scheduleRoute, debtRoute])
 
 const router = createRouter({
   routeTree,
-  context: {},
   defaultPreload: 'intent',
   scrollRestoration: true,
-  defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
 })
 
+// Router 타입 등록
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
   }
 }
 
+// React Mount
 const rootElement = document.getElementById('app')
-if (rootElement && !rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement)
-  root.render(
-    <StrictMode>
-      <RouterProvider router={router} />
-    </StrictMode>,
-  )
+if (!rootElement) {
+  throw new Error('Root element #app not found')
 }
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals()
+ReactDOM.createRoot(rootElement).render(
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>,
+)
