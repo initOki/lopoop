@@ -3,6 +3,18 @@ import { Plus, Trash2, Check, X } from 'lucide-react'
 import type { Debt } from '../types/debt'
 import { supabase } from '../lib/supabase'
 
+// Supabase 데이터베이스 타입 정의
+interface DebtRow {
+  id: string
+  debtor: string
+  creditor: string
+  amount: number | null
+  item: string | null
+  description: string | null
+  created_at: string
+  is_paid: boolean
+}
+
 export default function DebtPage() {
   const [debts, setDebts] = useState<Debt[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -31,7 +43,7 @@ export default function DebtPage() {
       if (error) throw error
 
       const formattedDebts: Debt[] =
-        data?.map((debt) => ({
+        (data as DebtRow[])?.map((debt) => ({
           id: debt.id,
           debtor: debt.debtor,
           creditor: debt.creditor,
@@ -70,15 +82,16 @@ export default function DebtPage() {
       if (error) throw error
 
       if (data) {
+        const debtRow = data as DebtRow
         const newDebt: Debt = {
-          id: data.id,
-          debtor: data.debtor,
-          creditor: data.creditor,
-          amount: data.amount ?? undefined,
-          item: data.item ?? undefined,
-          description: data.description ?? undefined,
-          createdAt: new Date(data.created_at),
-          isPaid: data.is_paid,
+          id: debtRow.id,
+          debtor: debtRow.debtor,
+          creditor: debtRow.creditor,
+          amount: debtRow.amount ?? undefined,
+          item: debtRow.item ?? undefined,
+          description: debtRow.description ?? undefined,
+          createdAt: new Date(debtRow.created_at),
+          isPaid: debtRow.is_paid,
         }
 
         setDebts([newDebt, ...debts])
