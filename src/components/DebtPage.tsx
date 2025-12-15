@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Check, X, Edit2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Debt } from '../types/debt'
 import { supabase } from '../lib/supabase'
 
@@ -58,7 +59,7 @@ export default function DebtPage() {
       setDebts(formattedDebts)
     } catch (error) {
       console.error('Error fetching debts:', error)
-      alert('빚 목록을 불러오는데 실패했습니다.')
+      toast.error('빚 목록을 불러오는데 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -101,6 +102,7 @@ export default function DebtPage() {
           }
 
           setDebts([newDebt, ...debts])
+          toast.success('빚이 추가되었습니다.')
         }
 
         setFormData({
@@ -113,7 +115,7 @@ export default function DebtPage() {
         setIsFormOpen(false)
       } catch (error) {
         console.error('Error creating debt:', error)
-        alert('빚을 추가하는데 실패했습니다.')
+        toast.error('빚을 추가하는데 실패했습니다.')
       }
     }
   }
@@ -155,6 +157,7 @@ export default function DebtPage() {
             debt.id === updatedDebt.id ? updatedDebt : debt,
           ),
         )
+        toast.success('빚이 수정되었습니다.')
       }
 
       setFormData({
@@ -168,7 +171,7 @@ export default function DebtPage() {
       setEditingDebt(null)
     } catch (error) {
       console.error('Error updating debt:', error)
-      alert('빚을 수정하는데 실패했습니다.')
+      toast.error('빚을 수정하는데 실패했습니다.')
     }
   }
 
@@ -203,9 +206,10 @@ export default function DebtPage() {
       if (error) throw error
 
       setDebts(debts.filter((debt) => debt.id !== id))
+      toast.success('빚이 삭제되었습니다.')
     } catch (error) {
       console.error('Error deleting debt:', error)
-      alert('빚을 삭제하는데 실패했습니다.')
+      toast.error('빚을 삭제하는데 실패했습니다.')
     }
   }
 
@@ -226,9 +230,12 @@ export default function DebtPage() {
           debt.id === id ? { ...debt, isPaid: !debt.isPaid } : debt,
         ),
       )
+      toast.success(
+        debt.isPaid ? '미납으로 변경되었습니다.' : '갚음으로 표시되었습니다.',
+      )
     } catch (error) {
       console.error('Error updating debt:', error)
-      alert('빚 상태를 변경하는데 실패했습니다.')
+      toast.error('빚 상태를 변경하는데 실패했습니다.')
     }
   }
 

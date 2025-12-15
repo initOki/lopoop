@@ -8,6 +8,7 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { Toaster } from 'sonner'
 
 import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
@@ -21,6 +22,7 @@ const rootRoute = createRootRoute({
     <>
       <Header />
       <Outlet />
+      <Toaster position="top-right" richColors />
       <TanStackRouterDevtools />
     </>
   ),
