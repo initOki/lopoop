@@ -43,18 +43,18 @@ type SlotData = {
 
 function parseSlotData(slotText: string | null): SlotData {
   if (!slotText) return null
-  
+
   const parts = slotText.split(' / ')
   if (parts.length === 2) {
     return {
       name: parts[0].trim(),
-      className: parts[1].trim()
+      className: parts[1].trim(),
     }
   }
-  
+
   return {
     name: slotText,
-    className: ''
+    className: '',
   }
 }
 
@@ -130,7 +130,7 @@ export default function App() {
         },
         () => {
           fetchRaids()
-        }
+        },
       )
       .subscribe()
 
@@ -182,18 +182,19 @@ export default function App() {
 
       if (error) throw error
 
-      const formattedRaids: RaidSummary[] = (data as ScheduleRow[])?.map((row) => {
-        const slots = [row.slot_1, row.slot_2, row.slot_3, row.slot_4]
-        const filledSlots = slots.filter(slot => slot !== null).length
-        
-        return {
-          id: row.id,
-          raidName: row.raid_name,
-          slots,
-          isCompleted: row.is_completed,
-          filledSlots
-        }
-      }) || []
+      const formattedRaids: RaidSummary[] =
+        (data as ScheduleRow[])?.map((row) => {
+          const slots = [row.slot_1, row.slot_2, row.slot_3, row.slot_4]
+          const filledSlots = slots.filter((slot) => slot !== null).length
+
+          return {
+            id: row.id,
+            raidName: row.raid_name,
+            slots,
+            isCompleted: row.is_completed,
+            filledSlots,
+          }
+        }) || []
 
       setRaids(formattedRaids)
     } catch (error) {
@@ -203,7 +204,10 @@ export default function App() {
     }
   }
 
-  const handleToggleRaidComplete = async (id: number, currentState: boolean) => {
+  const handleToggleRaidComplete = async (
+    id: number,
+    currentState: boolean,
+  ) => {
     try {
       const { error } = await supabase
         .from('schedules')
@@ -212,7 +216,7 @@ export default function App() {
 
       if (error) throw error
 
-      setRaids(prev => prev.filter(raid => raid.id !== id))
+      setRaids((prev) => prev.filter((raid) => raid.id !== id))
     } catch (error) {
       console.error('Error updating schedule:', error)
     }
@@ -221,174 +225,204 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">
-        {/* 레이드 스케줄 요약 */}
-        <div className="bg-gray-800 rounded-xl shadow-xl p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">미완료 레이드</h2>
-            <Link
-              to="/schedule"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
-            >
-              전체 보기
-              <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          {isLoadingRaids ? (
-            <div className="text-center py-12 text-gray-400">로딩 중...</div>
-          ) : raids.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">완료되지 않은 레이드가 없습니다.</p>
+        <div className="grid grid-cols-[1fr_400px] gap-[10px]">
+          {/* 레이드 스케줄 요약 */}
+          <div className="w-full bg-gray-800 rounded-xl shadow-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">미완료 레이드</h2>
               <Link
                 to="/schedule"
-                className="text-purple-400 hover:text-purple-300 underline"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
               >
-                레이드 추가
+                전체 보기
+                <ChevronRight size={16} />
               </Link>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {raids.map((raid) => (
-                <div
-                  key={raid.id}
-                  className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4 flex-1">
-                      <button
-                        onClick={() => handleToggleRaidComplete(raid.id, raid.isCompleted)}
-                        className="p-2 bg-gray-600 hover:bg-green-600 text-gray-300 hover:text-white rounded-lg transition-colors flex-shrink-0"
-                        title="완료 처리"
-                      >
-                        <Check size={18} />
-                      </button>
 
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg">
-                          {raid.raidName}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm text-gray-400">
-                            {raid.filledSlots}/4 슬롯
-                          </span>
-                          <div className="flex gap-1">
-                            {raid.slots.map((slot, idx) => {
-                              const slotData = parseSlotData(slot)
-                              if (!slotData) return null
-                              
-                              const role = slotData.className ? getClassRole(slotData.className) : null
-                              const Icon = role === 'support' ? Heart : role === 'dealer' ? Swords : null
-                              
-                              if (!Icon) return null
-                              
-                              return (
-                                <Icon
-                                  key={idx}
-                                  size={14}
-                                  className={role === 'support' ? 'text-green-400' : 'text-red-400'}
-                                />
-                              )
-                            })}
+            {isLoadingRaids ? (
+              <div className="text-center py-12 text-gray-400">로딩 중...</div>
+            ) : raids.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 mb-4">
+                  완료되지 않은 레이드가 없습니다.
+                </p>
+                <Link
+                  to="/schedule"
+                  className="text-purple-400 hover:text-purple-300 underline"
+                >
+                  레이드 추가
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {raids.map((raid) => (
+                  <div
+                    key={raid.id}
+                    className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4 flex-1">
+                        <button
+                          onClick={() =>
+                            handleToggleRaidComplete(raid.id, raid.isCompleted)
+                          }
+                          className="p-2 bg-gray-600 hover:bg-green-600 text-gray-300 hover:text-white rounded-lg transition-colors flex-shrink-0"
+                          title="완료 처리"
+                        >
+                          <Check size={18} />
+                        </button>
+
+                        <div className="flex-1">
+                          <h3 className="text-white font-semibold text-lg">
+                            {raid.raidName}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-sm text-gray-400">
+                              {raid.filledSlots}/4 슬롯
+                            </span>
+                            <div className="flex gap-1">
+                              {raid.slots.map((slot, idx) => {
+                                const slotData = parseSlotData(slot)
+                                if (!slotData) return null
+
+                                const role = slotData.className
+                                  ? getClassRole(slotData.className)
+                                  : null
+                                const Icon =
+                                  role === 'support'
+                                    ? Heart
+                                    : role === 'dealer'
+                                      ? Swords
+                                      : null
+
+                                if (!Icon) return null
+
+                                return (
+                                  <Icon
+                                    key={idx}
+                                    size={14}
+                                    className={
+                                      role === 'support'
+                                        ? 'text-green-400'
+                                        : 'text-red-400'
+                                    }
+                                  />
+                                )
+                              })}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="hidden md:flex gap-2">
-                        {raid.slots.map((slot, idx) => {
-                          const slotData = parseSlotData(slot)
-                          if (!slotData) return null
-                          
-                          const role = slotData.className ? getClassRole(slotData.className) : null
-                          const Icon = role === 'support' ? Heart : role === 'dealer' ? Swords : null
-                          
-                          return (
-                            <div 
-                              key={idx}
-                              className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded text-sm"
-                            >
-                              {Icon && (
-                                <Icon
-                                  size={12}
-                                  className={role === 'support' ? 'text-green-400' : 'text-red-400'}
-                                />
-                              )}
-                              <span className="text-gray-300">{slotData.name}</span>
-                            </div>
-                          )
-                        })}
+                        <div className="hidden md:flex gap-2">
+                          {raid.slots.map((slot, idx) => {
+                            const slotData = parseSlotData(slot)
+                            if (!slotData) return null
+
+                            const role = slotData.className
+                              ? getClassRole(slotData.className)
+                              : null
+                            const Icon =
+                              role === 'support'
+                                ? Heart
+                                : role === 'dealer'
+                                  ? Swords
+                                  : null
+
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded text-sm"
+                              >
+                                {Icon && (
+                                  <Icon
+                                    size={12}
+                                    className={
+                                      role === 'support'
+                                        ? 'text-green-400'
+                                        : 'text-red-400'
+                                    }
+                                  />
+                                )}
+                                <span className="text-gray-300">
+                                  {slotData.name}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 빚 목록 */}
-        <div className="bg-gray-800 rounded-xl shadow-xl p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">최근 빚 목록</h2>
-            <Link
-              to="/debts"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
-            >
-              전체 보기
-              <ChevronRight size={16} />
-            </Link>
+                ))}
+              </div>
+            )}
           </div>
 
-          {isLoadingDebts ? (
-            <div className="text-center py-12 text-gray-400">로딩 중...</div>
-          ) : debts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">등록된 빚이 없습니다.</p>
+          {/* 빚 목록 */}
+          <div className="w-full bg-gray-800 rounded-xl shadow-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">최근 빚 목록</h2>
               <Link
                 to="/debts"
-                className="text-blue-400 hover:text-blue-300 underline"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
               >
-                빚 추가
+                전체 보기
+                <ChevronRight size={16} />
               </Link>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {debts.slice(0, 5).map((debt) => (
-                <div
-                  key={debt.id}
-                  className={`bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors ${
-                    debt.isPaid ? 'opacity-50' : ''
-                  }`}
+
+            {isLoadingDebts ? (
+              <div className="text-center py-12 text-gray-400">로딩 중...</div>
+            ) : debts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 mb-4">등록된 빚이 없습니다.</p>
+                <Link
+                  to="/debts"
+                  className="text-blue-400 hover:text-blue-300 underline"
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <span className="text-red-400 font-semibold">
-                        {debt.debtor}
-                      </span>
-                      <span className="text-gray-500">→</span>
-                      <span className="text-green-400 font-semibold">
-                        {debt.creditor}
-                      </span>
-                      {debt.isPaid && (
-                        <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded">
-                          갚음
+                  빚 추가
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {debts.slice(0, 5).map((debt) => (
+                  <div
+                    key={debt.id}
+                    className={`bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors ${
+                      debt.isPaid ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <span className="text-red-400 font-semibold">
+                          {debt.debtor}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      {debt.amount && (
-                        <p className="text-white font-bold">
-                          {debt.amount.toLocaleString()}원
-                        </p>
-                      )}
-                      {debt.item && (
-                        <p className="text-gray-400 text-sm">{debt.item}</p>
-                      )}
+                        <span className="text-gray-500">→</span>
+                        <span className="text-green-400 font-semibold">
+                          {debt.creditor}
+                        </span>
+                        {debt.isPaid && (
+                          <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded">
+                            갚음
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {debt.amount && (
+                          <p className="text-white font-bold">
+                            {debt.amount.toLocaleString()}원
+                          </p>
+                        )}
+                        {debt.item && (
+                          <p className="text-gray-400 text-sm">{debt.item}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 모험섬 컴포넌트 */}
