@@ -224,7 +224,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">
+      <div className="w-full max-w-[1440px] mx-auto px-6 py-12 space-y-8">
         <div className="grid grid-cols-[1fr_400px] gap-[10px]">
           {/* 레이드 스케줄 요약 */}
           <div className="w-full bg-gray-800 rounded-xl shadow-xl p-6">
