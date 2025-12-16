@@ -1,4 +1,5 @@
 import type { ExpeditionCharacter } from '@/types/loa'
+import { formatCharacterForSelect } from '@/utils/classUtils'
 
 export default function RaidSlot({
   index,
@@ -11,6 +12,9 @@ export default function RaidSlot({
   value: ExpeditionCharacter | null
   onChange: (c: ExpeditionCharacter | null) => void
 }) {
+  // 아이템 레벨 내림차순으로 정렬
+  const sortedCharacters = [...characters].sort((a, b) => b.ItemLevel - a.ItemLevel)
+
   return (
     <div className="space-y-2">
       <p className="font-semibold text-white">슬롯 {index + 1}</p>
@@ -37,14 +41,13 @@ export default function RaidSlot({
           캐릭터 선택
         </option>
 
-        {characters.map((c) => (
+        {sortedCharacters.map((c) => (
           <option 
             key={c.CharacterName} 
             value={c.CharacterName}
             className="text-white bg-zinc-800"
           >
-            [계정 {c.ExpeditionIndex}] {c.CharacterName} (
-            {c.ItemLevel.toLocaleString()})
+            {formatCharacterForSelect(c.CharacterName, c.CharacterClassName, c.ItemLevel)}
           </option>
         ))}
       </select>

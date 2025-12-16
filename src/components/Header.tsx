@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 
 import { useState } from 'react'
-import { Home, Menu, X } from 'lucide-react'
+import { Home, Menu, X, Wallet, Calendar } from 'lucide-react'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -18,11 +18,7 @@ export default function Header() {
         </button>
         <h1 className="ml-4 text-xl font-semibold">
           <Link to="/">
-            <img
-              src="/tanstack-word-logo-white.svg"
-              alt="TanStack Logo"
-              className="h-10"
-            />
+            <img src="/lopoop-logo.svg" alt="LOPOOP Logo" className="h-10" />
           </Link>
         </h1>
       </header>
@@ -33,7 +29,7 @@ export default function Header() {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold">Navigation</h2>
+          <div></div>
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -55,6 +51,32 @@ export default function Header() {
           >
             <Home size={20} />
             <span className="font-medium">Home</span>
+          </Link>
+
+          <Link
+            to="/schedule"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+            activeProps={{
+              className:
+                'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
+            }}
+          >
+            <Calendar size={20} />
+            <span className="font-medium">스케줄</span>
+          </Link>
+
+          <Link
+            to="/debts"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+            activeProps={{
+              className:
+                'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
+            }}
+          >
+            <Wallet size={20} />
+            <span className="font-medium">빚 관리</span>
           </Link>
 
           {/* Demo Links Start */}

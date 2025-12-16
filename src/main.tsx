@@ -8,16 +8,21 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { Toaster } from 'sonner'
 
 import './styles/globals.css'
-import App from './App'
+import DebtPage from './components/DebtPage.tsx'
+import Header from './components/Header.tsx'
+import SchedulePage from './components/SchedulePage.tsx'
+import App from './App.tsx'
 
-// Root Route
 const rootRoute = createRootRoute({
   component: () => (
     <>
+      <Header />
       <Outlet />
-      {import.meta.env.DEV && <TanStackRouterDevtools />}
+      <Toaster position="top-right" richColors />
+      <TanStackRouterDevtools />
     </>
   ),
 })
@@ -29,10 +34,20 @@ const indexRoute = createRoute({
   component: App,
 })
 
-// Route Tree
-const routeTree = rootRoute.addChildren([indexRoute])
+const scheduleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/schedule',
+  component: SchedulePage,
+})
 
-// Router 생성
+const debtRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/debts',
+  component: DebtPage,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, scheduleRoute, debtRoute])
+
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
