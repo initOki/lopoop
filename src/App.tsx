@@ -4,6 +4,7 @@ import { Check, Swords, Heart, ChevronRight } from 'lucide-react'
 import type { Debt } from './types/debt'
 import { supabase } from './lib/supabase'
 import { getClassRole } from './utils/classUtils'
+import AdventureIslands from './components/AdventureIslands'
 
 interface DebtRow {
   id: string
@@ -211,7 +212,6 @@ export default function App() {
 
       if (error) throw error
 
-      // 미완료 목록에서 제거
       setRaids(prev => prev.filter(raid => raid.id !== id))
     } catch (error) {
       console.error('Error updating schedule:', error)
@@ -255,7 +255,6 @@ export default function App() {
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4 flex-1">
-                      {/* 완료 체크 버튼 */}
                       <button
                         onClick={() => handleToggleRaidComplete(raid.id, raid.isCompleted)}
                         className="p-2 bg-gray-600 hover:bg-green-600 text-gray-300 hover:text-white rounded-lg transition-colors flex-shrink-0"
@@ -264,7 +263,6 @@ export default function App() {
                         <Check size={18} />
                       </button>
 
-                      {/* 레이드 이름 */}
                       <div className="flex-1">
                         <h3 className="text-white font-semibold text-lg">
                           {raid.raidName}
@@ -273,7 +271,6 @@ export default function App() {
                           <span className="text-sm text-gray-400">
                             {raid.filledSlots}/4 슬롯
                           </span>
-                          {/* 슬롯 아이콘 미리보기 */}
                           <div className="flex gap-1">
                             {raid.slots.map((slot, idx) => {
                               const slotData = parseSlotData(slot)
@@ -296,7 +293,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* 슬롯 정보 */}
                       <div className="hidden md:flex gap-2">
                         {raid.slots.map((slot, idx) => {
                           const slotData = parseSlotData(slot)
@@ -394,6 +390,9 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* 모험섬 컴포넌트 */}
+        <AdventureIslands />
       </div>
     </div>
   )
