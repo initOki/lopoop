@@ -447,13 +447,13 @@ export default function RaidSchedulePage() {
           <table className="w-full">
             <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300 w-16">완료</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300">레이드 종류</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300">슬롯 1</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300">슬롯 2</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300">슬롯 3</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300">슬롯 4</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-300 w-16">작업</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">완료</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">레이드 종류</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 1</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 2</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 3</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 4</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">작업</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -490,10 +490,12 @@ export default function RaidSchedulePage() {
                         <Check size={18} />
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-white font-medium">{schedule.raidName}</td>
+                    <td className="px-6 py-4 text-white font-medium text-center">{schedule.raidName}</td>
                     {schedule.slots.map((slot, idx) => (
-                      <td key={idx} className="px-6 py-4 text-gray-300">
-                        <SlotCell slotText={slot} />
+                      <td key={idx} className="px-6 py-4 text-gray-300 text-center">
+                        <div className="flex justify-center">
+                          <SlotCell slotText={slot} />
+                        </div>
                       </td>
                     ))}
                     <td className="px-6 py-4 text-center">

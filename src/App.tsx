@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
+import { Check, Swords, Heart, ChevronRight } from 'lucide-react'
 import type { Debt } from './types/debt'
 import { supabase } from './lib/supabase'
+import { getClassRole } from './utils/classUtils'
 
 interface DebtRow {
   id: string
@@ -14,26 +16,68 @@ interface DebtRow {
   is_paid: boolean
 }
 
+interface ScheduleRow {
+  id: number
+  raid_name: string
+  slot_1: string | null
+  slot_2: string | null
+  slot_3: string | null
+  slot_4: string | null
+  is_completed: boolean
+  created_at: string
+}
+
+interface RaidSummary {
+  id: number
+  raidName: string
+  slots: (string | null)[]
+  isCompleted: boolean
+  filledSlots: number
+}
+
+type SlotData = {
+  name: string
+  className: string
+} | null
+
+function parseSlotData(slotText: string | null): SlotData {
+  if (!slotText) return null
+  
+  const parts = slotText.split(' / ')
+  if (parts.length === 2) {
+    return {
+      name: parts[0].trim(),
+      className: parts[1].trim()
+    }
+  }
+  
+  return {
+    name: slotText,
+    className: ''
+  }
+}
+
 export default function App() {
   const [debts, setDebts] = useState<Debt[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [raids, setRaids] = useState<RaidSummary[]>([])
+  const [isLoadingDebts, setIsLoadingDebts] = useState(true)
+  const [isLoadingRaids, setIsLoadingRaids] = useState(true)
 
   useEffect(() => {
     fetchDebts()
+    fetchRaids()
 
-    // Supabase 실시간 구독 설정
-    const channel = supabase
+    // Debts 실시간 구독
+    const debtsChannel = supabase
       .channel('debts-changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          event: '*',
           schema: 'public',
           table: 'debts',
         },
         (payload) => {
-          console.log('Real-time change detected:', payload)
-
           if (payload.eventType === 'INSERT') {
             const newRow = payload.new as DebtRow
             const newDebt: Debt = {
@@ -73,15 +117,31 @@ export default function App() {
       )
       .subscribe()
 
-    // 컴포넌트 언마운트 시 구독 해제
+    // Raids 실시간 구독
+    const raidsChannel = supabase
+      .channel('schedules-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'schedules',
+        },
+        () => {
+          fetchRaids()
+        }
+      )
+      .subscribe()
+
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(debtsChannel)
+      supabase.removeChannel(raidsChannel)
     }
   }, [])
 
   const fetchDebts = async () => {
     try {
-      setIsLoading(true)
+      setIsLoadingDebts(true)
       const { data, error } = await supabase
         .from('debts')
         .select('*')
@@ -105,81 +165,184 @@ export default function App() {
     } catch (error) {
       console.error('Error fetching debts:', error)
     } finally {
-      setIsLoading(false)
+      setIsLoadingDebts(false)
     }
   }
 
-  // 통계 계산
-  // const totalDebts = debts.length
-  // const unpaidDebts = debts.filter((d) => !d.isPaid).length
-  // const paidDebts = debts.filter((d) => d.isPaid).length
-  // const totalAmount = debts
-  //   .filter((d) => !d.isPaid && d.amount)
-  //   .reduce((sum, d) => sum + (d.amount || 0), 0)
+  const fetchRaids = async () => {
+    try {
+      setIsLoadingRaids(true)
+      const { data, error } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('is_completed', false)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (error) throw error
+
+      const formattedRaids: RaidSummary[] = (data as ScheduleRow[])?.map((row) => {
+        const slots = [row.slot_1, row.slot_2, row.slot_3, row.slot_4]
+        const filledSlots = slots.filter(slot => slot !== null).length
+        
+        return {
+          id: row.id,
+          raidName: row.raid_name,
+          slots,
+          isCompleted: row.is_completed,
+          filledSlots
+        }
+      }) || []
+
+      setRaids(formattedRaids)
+    } catch (error) {
+      console.error('Error fetching raids:', error)
+    } finally {
+      setIsLoadingRaids(false)
+    }
+  }
+
+  const handleToggleRaidComplete = async (id: number, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('schedules')
+        .update({ is_completed: !currentState })
+        .eq('id', id)
+
+      if (error) throw error
+
+      // 미완료 목록에서 제거
+      setRaids(prev => prev.filter(raid => raid.id !== id))
+    } catch (error) {
+      console.error('Error updating schedule:', error)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <Wallet className="text-white opacity-80" size={32} />
-              <span className="text-blue-100 text-sm font-medium">전체</span>
-            </div>
-            <div className="text-white">
-              <p className="text-3xl font-bold">{totalDebts}</p>
-              <p className="text-blue-100 text-sm mt-1">총 빚 건수</p>
-            </div>
+      <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">
+        {/* 레이드 스케줄 요약 */}
+        <div className="bg-gray-800 rounded-xl shadow-xl p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-white">미완료 레이드</h2>
+            <Link
+              to="/schedule"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+            >
+              전체 보기
+              <ChevronRight size={16} />
+            </Link>
           </div>
 
-          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="text-white opacity-80" size={32} />
-              <span className="text-red-100 text-sm font-medium">미납</span>
+          {isLoadingRaids ? (
+            <div className="text-center py-12 text-gray-400">로딩 중...</div>
+          ) : raids.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-400 mb-4">완료되지 않은 레이드가 없습니다.</p>
+              <Link
+                to="/schedule"
+                className="text-purple-400 hover:text-purple-300 underline"
+              >
+                레이드 추가
+              </Link>
             </div>
-            <div className="text-white">
-              <p className="text-3xl font-bold">{unpaidDebts}</p>
-              <p className="text-red-100 text-sm mt-1">미납 건수</p>
-            </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              {raids.map((raid) => (
+                <div
+                  key={raid.id}
+                  className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4 flex-1">
+                      {/* 완료 체크 버튼 */}
+                      <button
+                        onClick={() => handleToggleRaidComplete(raid.id, raid.isCompleted)}
+                        className="p-2 bg-gray-600 hover:bg-green-600 text-gray-300 hover:text-white rounded-lg transition-colors flex-shrink-0"
+                        title="완료 처리"
+                      >
+                        <Check size={18} />
+                      </button>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingDown className="text-white opacity-80" size={32} />
-              <span className="text-green-100 text-sm font-medium">완납</span>
-            </div>
-            <div className="text-white">
-              <p className="text-3xl font-bold">{paidDebts}</p>
-              <p className="text-green-100 text-sm mt-1">완납 건수</p>
-            </div>
-          </div>
+                      {/* 레이드 이름 */}
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-lg">
+                          {raid.raidName}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-sm text-gray-400">
+                            {raid.filledSlots}/4 슬롯
+                          </span>
+                          {/* 슬롯 아이콘 미리보기 */}
+                          <div className="flex gap-1">
+                            {raid.slots.map((slot, idx) => {
+                              const slotData = parseSlotData(slot)
+                              if (!slotData) return null
+                              
+                              const role = slotData.className ? getClassRole(slotData.className) : null
+                              const Icon = role === 'support' ? Heart : role === 'dealer' ? Swords : null
+                              
+                              if (!Icon) return null
+                              
+                              return (
+                                <Icon
+                                  key={idx}
+                                  size={14}
+                                  className={role === 'support' ? 'text-green-400' : 'text-red-400'}
+                                />
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <AlertCircle className="text-white opacity-80" size={32} />
-              <span className="text-purple-100 text-sm font-medium">금액</span>
+                      {/* 슬롯 정보 */}
+                      <div className="hidden md:flex gap-2">
+                        {raid.slots.map((slot, idx) => {
+                          const slotData = parseSlotData(slot)
+                          if (!slotData) return null
+                          
+                          const role = slotData.className ? getClassRole(slotData.className) : null
+                          const Icon = role === 'support' ? Heart : role === 'dealer' ? Swords : null
+                          
+                          return (
+                            <div 
+                              key={idx}
+                              className="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded text-sm"
+                            >
+                              {Icon && (
+                                <Icon
+                                  size={12}
+                                  className={role === 'support' ? 'text-green-400' : 'text-red-400'}
+                                />
+                              )}
+                              <span className="text-gray-300">{slotData.name}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="text-white">
-              <p className="text-2xl font-bold">
-                {totalAmount.toLocaleString()}원
-              </p>
-              <p className="text-purple-100 text-sm mt-1">미납 총액</p>
-            </div>
-          </div>
-        </div> */}
+          )}
+        </div>
 
+        {/* 빚 목록 */}
         <div className="bg-gray-800 rounded-xl shadow-xl p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">최근 빚 목록</h2>
             <Link
               to="/debts"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
             >
               전체 보기
+              <ChevronRight size={16} />
             </Link>
           </div>
 
-          {isLoading ? (
+          {isLoadingDebts ? (
             <div className="text-center py-12 text-gray-400">로딩 중...</div>
           ) : debts.length === 0 ? (
             <div className="text-center py-12">
