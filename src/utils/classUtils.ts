@@ -1,39 +1,34 @@
 // 서폿 직업 목록
-const SUPPORT_CLASSES = [
-  '바드',
-  '홀리나이트',
-  '도화가',
-  '발키리',
-]
+const SUPPORT_CLASSES = ['바드', '홀리나이트', '도화가', '발키리']
 
 // 딜러 직업 목록
-const DEALER_CLASSES = [
-  '버서커',
-  '디스트로이어',
-  '워로드',
-  '슬레이어',
-  '아르카나',
-  '서머너',
-  '소서리스',
-  '배틀마스터',
-  '인파이터',
-  '기공사',
-  '창술사',
-  '스트라이커',
-  '브레이커',
-  '데빌헌터',
-  '블래스터',
-  '호크아이',
-  '스카우터',
-  '건슬링어',
-  '데모닉',
-  '블레이드',
-  '리퍼',
-  '소울이터',
-  '기상술사',
-  '환수사',
-  '가디언나이트',
-]
+// const DEALER_CLASSES = [
+//   '버서커',
+//   '디스트로이어',
+//   '워로드',
+//   '슬레이어',
+//   '아르카나',
+//   '서머너',
+//   '소서리스',
+//   '배틀마스터',
+//   '인파이터',
+//   '기공사',
+//   '창술사',
+//   '스트라이커',
+//   '브레이커',
+//   '데빌헌터',
+//   '블래스터',
+//   '호크아이',
+//   '스카우터',
+//   '건슬링어',
+//   '데모닉',
+//   '블레이드',
+//   '리퍼',
+//   '소울이터',
+//   '기상술사',
+//   '환수사',
+//   '가디언나이트',
+// ]
 
 /**
  * 직업이 서폿인지 확인
@@ -55,7 +50,7 @@ export function getClassRole(className: string): 'support' | 'dealer' {
 export function formatCharacterForSelect(
   name: string,
   className: string,
-  itemLevel: number
+  itemLevel: number,
 ): string {
   return `${name} / ${className} (${itemLevel.toLocaleString()})`
 }
@@ -65,7 +60,7 @@ export function formatCharacterForSelect(
  */
 export function formatCharacterForTable(
   name: string,
-  className: string
+  className: string,
 ): string {
   return `${name} / ${className}`
 }
