@@ -37,6 +37,40 @@ export interface Database {
         }
         Relationships: []
       }
+
+      schedules: {
+        Row: {
+          id: number
+          raid_name: string
+          slot_1: string | null
+          slot_2: string | null
+          slot_3: string | null
+          slot_4: string | null
+          is_completed: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          raid_name: string
+          slot_1?: string | null
+          slot_2?: string | null
+          slot_3?: string | null
+          slot_4?: string | null
+          is_completed?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          raid_name?: string
+          slot_1?: string | null
+          slot_2?: string | null
+          slot_3?: string | null
+          slot_4?: string | null
+          is_completed?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }

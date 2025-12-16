@@ -1,19 +1,32 @@
+// src/features/raidSetup/RaidSetup.tsx
 import { useState } from 'react'
 import type { ExpeditionCharacter } from '@/types/loa'
 import AccountSearch from '@/features/characterSearch/AccountSearch'
-import RaidSlot from './RaidSlot'
+import RaidSlot from '@/features/raidSetup/RaidSlot'
 
-export default function RaidSetup() {
-  const [accounts, setAccounts] = useState<Record<number, ExpeditionCharacter[]>>(
-    {},
-  )
+type Props = {
+  selectedSlots?: (ExpeditionCharacter | null)[]
+  onSlotsChange?: (slots: (ExpeditionCharacter | null)[]) => void
+}
 
-  const [slots, setSlots] = useState<(ExpeditionCharacter | null)[]>([
+export default function RaidSetup({ selectedSlots: externalSlots, onSlotsChange }: Props) {
+  const [accounts, setAccounts] = useState<Record<number, ExpeditionCharacter[]>>({})
+  
+  const [internalSlots, setInternalSlots] = useState<(ExpeditionCharacter | null)[]>([
     null,
     null,
     null,
     null,
   ])
+
+  const slots = externalSlots !== undefined ? externalSlots : internalSlots
+  const setSlots = onSlotsChange || setInternalSlots
+
+  const handleSlotChange = (idx: number, char: ExpeditionCharacter | null) => {
+    const next = [...slots]
+    next[idx] = char
+    setSlots(next)
+  }
 
   return (
     <div className="space-y-8">
@@ -41,13 +54,7 @@ export default function RaidSetup() {
               index={idx}
               characters={accounts[expeditionIndex] ?? []}
               value={slot}
-              onChange={(char) =>
-                setSlots((prev) => {
-                  const next = [...prev]
-                  next[idx] = char
-                  return next
-                })
-              }
+              onChange={(char) => handleSlotChange(idx, char)}
             />
           )
         })}
@@ -55,4 +62,3 @@ export default function RaidSetup() {
     </div>
   )
 }
-

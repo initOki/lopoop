@@ -1,4 +1,5 @@
 import type { ExpeditionCharacter } from '@/types/loa'
+import { formatCharacterForSelect } from '@/utils/classUtils'
 
 export default function RaidSlot({
   index,
@@ -43,8 +44,7 @@ export default function RaidSlot({
             value={c.CharacterName}
             className="text-white bg-zinc-800"
           >
-            [계정 {c.ExpeditionIndex}] {c.CharacterName} (
-            {c.ItemLevel.toLocaleString()})
+            {formatCharacterForSelect(c.CharacterName, c.CharacterClassName, c.ItemLevel)}
           </option>
         ))}
       </select>
