@@ -1,56 +1,74 @@
 import type { ExpeditionCharacter } from '@/types/loa'
 import { formatCharacterForSelect } from '@/utils/classUtils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function RaidSlot({
   index,
   characters,
   value,
   onChange,
+  getCharacterUsageCount,
 }: {
   index: number
   characters: ExpeditionCharacter[]
   value: ExpeditionCharacter | null
   onChange: (c: ExpeditionCharacter | null) => void
+  getCharacterUsageCount?: (characterName: string) => number
 }) {
   // 아이템 레벨 내림차순으로 정렬
-  const sortedCharacters = [...characters].sort((a, b) => b.ItemLevel - a.ItemLevel)
+  const sortedCharacters = [...characters].sort(
+    (a, b) => b.ItemLevel - a.ItemLevel,
+  )
 
   return (
     <div className="space-y-2">
       <p className="font-semibold text-white">슬롯 {index + 1}</p>
 
-      <select
-        className="
-          w-full
-          rounded
-          bg-zinc-800
-          px-2 py-2
-          text-white
-          focus:outline-none
-          focus:ring-2 focus:ring-blue-500
-        "
+      <Select
         value={value?.CharacterName ?? ''}
-        onChange={(e) => {
+        onValueChange={(characterName) => {
           const char =
-            characters.find((c) => c.CharacterName === e.target.value) ??
-            null
+            characters.find((c) => c.CharacterName === characterName) ?? null
           onChange(char)
         }}
       >
-        <option value="" className="text-zinc-400 bg-zinc-800">
-          캐릭터 선택
-        </option>
-
-        {sortedCharacters.map((c) => (
-          <option 
-            key={c.CharacterName} 
-            value={c.CharacterName}
-            className="text-white bg-zinc-800"
-          >
-            {formatCharacterForSelect(c.CharacterName, c.CharacterClassName, c.ItemLevel)}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="w-full bg-zinc-800 text-white border-gray-600">
+          <SelectValue placeholder="캐릭터 선택" />
+        </SelectTrigger>
+        <SelectContent className="bg-zinc-800 border-gray-600">
+          {sortedCharacters.map((c) => {
+            const usageCount = getCharacterUsageCount
+              ? getCharacterUsageCount(c.CharacterName)
+              : 0
+            const isDisabled = usageCount >= 3
+            return (
+              <SelectItem
+                key={c.CharacterName}
+                value={c.CharacterName}
+                disabled={isDisabled}
+                className={
+                  isDisabled
+                    ? 'text-gray-500 data-[disabled]:opacity-50'
+                    : 'text-white'
+                }
+              >
+                {formatCharacterForSelect(
+                  c.CharacterName,
+                  c.CharacterClassName,
+                  c.ItemLevel,
+                )}
+                {isDisabled ? ' - 3회 등록됨' : ''}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
     </div>
   )
 }
