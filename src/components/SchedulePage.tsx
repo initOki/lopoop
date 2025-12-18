@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, RefreshCw, AlertCircle, Heart, Swords } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Check,
+  RefreshCw,
+  AlertCircle,
+  Heart,
+  Swords,
+  Edit2,
+  X,
+  Save,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { raidList } from '@/lib/raid-list'
@@ -7,6 +18,14 @@ import RaidSetup from '@/features/raidSetup/RaidSetup'
 import type { ExpeditionCharacter } from '@/types/loa'
 import type { Database } from '@/types/database'
 import { getClassRole, formatCharacterForTable } from '@/utils/classUtils'
+import AccountSearch from '@/features/characterSearch/AccountSearch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type ScheduleRow = Database['public']['Tables']['schedules']['Row']
 
@@ -26,20 +45,20 @@ type SlotData = {
 
 function parseSlotData(slotText: string | null): SlotData {
   if (!slotText) return null
-  
+
   // "캐릭터이름 / 직업" 형식으로 저장된 경우
   const parts = slotText.split(' / ')
   if (parts.length === 2) {
     return {
       name: parts[0].trim(),
-      className: parts[1].trim()
+      className: parts[1].trim(),
     }
   }
-  
+
   // 이름만 저장된 경우 (하위 호환성)
   return {
     name: slotText,
-    className: ''
+    className: '',
   }
 }
 
@@ -48,15 +67,23 @@ const LAST_RESET_KEY = 'raid_schedule_last_reset'
 export default function RaidSchedulePage() {
   const [schedules, setSchedules] = useState<RaidSchedule[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // 새 레이드 추가 상태
   const [newRaid, setNewRaid] = useState('')
-  const [selectedSlots, setSelectedSlots] = useState<(ExpeditionCharacter | null)[]>([
+  const [selectedSlots, setSelectedSlots] = useState<
+    (ExpeditionCharacter | null)[]
+  >([null, null, null, null])
+
+  // 편집 모드 상태
+  const [editingScheduleId, setEditingScheduleId] = useState<number | null>(
     null,
-    null,
-    null,
-    null,
-  ])
+  )
+  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null)
+  const [editCharacters, setEditCharacters] = useState<ExpeditionCharacter[]>(
+    [],
+  )
+  const [selectedEditCharacter, setSelectedEditCharacter] =
+    useState<ExpeditionCharacter | null>(null)
 
   useEffect(() => {
     checkAndResetIfNeeded()
@@ -79,13 +106,15 @@ export default function RaidSchedulePage() {
           } else if (payload.eventType === 'UPDATE') {
             const updatedRow = payload.new as ScheduleRow
             setSchedules((prev) =>
-              prev.map((s) => (s.id === updatedRow.id ? rowToSchedule(updatedRow) : s))
+              prev.map((s) =>
+                s.id === updatedRow.id ? rowToSchedule(updatedRow) : s,
+              ),
             )
           } else if (payload.eventType === 'DELETE') {
             const deletedRow = payload.old as ScheduleRow
             setSchedules((prev) => prev.filter((s) => s.id !== deletedRow.id))
           }
-        }
+        },
       )
       .subscribe()
 
@@ -98,7 +127,7 @@ export default function RaidSchedulePage() {
   const checkAndResetIfNeeded = () => {
     const now = new Date()
     const lastReset = localStorage.getItem(LAST_RESET_KEY)
-    
+
     if (!lastReset) {
       localStorage.setItem(LAST_RESET_KEY, now.toISOString())
       return
@@ -118,10 +147,10 @@ export default function RaidSchedulePage() {
     const date = new Date(fromDate)
     const dayOfWeek = date.getDay()
     const daysUntilWednesday = (3 - dayOfWeek + 7) % 7 || 7
-    
+
     date.setDate(date.getDate() + daysUntilWednesday)
     date.setHours(6, 0, 0, 0)
-    
+
     return date
   }
 
@@ -134,7 +163,7 @@ export default function RaidSchedulePage() {
         .neq('id', 0)
 
       if (error) throw error
-      
+
       toast.success('주간 레이드가 초기화되었습니다.')
     } catch (error) {
       console.error('Error resetting completions:', error)
@@ -144,7 +173,7 @@ export default function RaidSchedulePage() {
   // 수동 초기화
   const handleManualReset = async () => {
     if (!confirm('모든 레이드 완료 상태를 초기화하시겠습니까?')) return
-    
+
     await resetAllCompletions()
     localStorage.setItem(LAST_RESET_KEY, new Date().toISOString())
   }
@@ -179,10 +208,13 @@ export default function RaidSchedulePage() {
   }
 
   // 레이드 입장 레벨 체크
-  const checkItemLevelRequirement = (): { valid: boolean; invalidSlots: number[] } => {
+  const checkItemLevelRequirement = (): {
+    valid: boolean
+    invalidSlots: number[]
+  } => {
     if (!newRaid) return { valid: true, invalidSlots: [] }
 
-    const selectedRaid = raidList.find(r => r.name === newRaid)
+    const selectedRaid = raidList.find((r) => r.name === newRaid)
     if (!selectedRaid) return { valid: true, invalidSlots: [] }
 
     const invalidSlots: number[] = []
@@ -195,7 +227,7 @@ export default function RaidSchedulePage() {
 
     return {
       valid: invalidSlots.length === 0,
-      invalidSlots
+      invalidSlots,
     }
   }
 
@@ -207,11 +239,29 @@ export default function RaidSchedulePage() {
 
     // 입장 레벨 체크
     const { valid, invalidSlots } = checkItemLevelRequirement()
-    
+
     if (!valid) {
-      const selectedRaid = raidList.find(r => r.name === newRaid)
+      const selectedRaid = raidList.find((r) => r.name === newRaid)
       toast.error(
-        `슬롯 ${invalidSlots.join(', ')}의 캐릭터가 입장 레벨(${selectedRaid?.minItemLevel})에 미달합니다.`
+        `슬롯 ${invalidSlots.join(', ')}의 캐릭터가 입장 레벨(${selectedRaid?.minItemLevel})에 미달합니다.`,
+      )
+      return
+    }
+
+    // 캐릭터 3회 등록 체크
+    const overusedCharacters: string[] = []
+    selectedSlots.forEach((slot) => {
+      if (slot) {
+        const usageCount = getCharacterUsageCount(slot.CharacterName)
+        if (usageCount >= 3) {
+          overusedCharacters.push(slot.CharacterName)
+        }
+      }
+    })
+
+    if (overusedCharacters.length > 0) {
+      toast.error(
+        `${overusedCharacters.join(', ')}은(는) 이미 3회 등록되어 있어 더 이상 추가할 수 없습니다.`,
       )
       return
     }
@@ -219,17 +269,29 @@ export default function RaidSchedulePage() {
     try {
       const { error } = await supabase.from('schedules').insert({
         raid_name: newRaid,
-        slot_1: selectedSlots[0] 
-          ? formatCharacterForTable(selectedSlots[0].CharacterName, selectedSlots[0].CharacterClassName)
+        slot_1: selectedSlots[0]
+          ? formatCharacterForTable(
+              selectedSlots[0].CharacterName,
+              selectedSlots[0].CharacterClassName,
+            )
           : null,
         slot_2: selectedSlots[1]
-          ? formatCharacterForTable(selectedSlots[1].CharacterName, selectedSlots[1].CharacterClassName)
+          ? formatCharacterForTable(
+              selectedSlots[1].CharacterName,
+              selectedSlots[1].CharacterClassName,
+            )
           : null,
         slot_3: selectedSlots[2]
-          ? formatCharacterForTable(selectedSlots[2].CharacterName, selectedSlots[2].CharacterClassName)
+          ? formatCharacterForTable(
+              selectedSlots[2].CharacterName,
+              selectedSlots[2].CharacterClassName,
+            )
           : null,
         slot_4: selectedSlots[3]
-          ? formatCharacterForTable(selectedSlots[3].CharacterName, selectedSlots[3].CharacterClassName)
+          ? formatCharacterForTable(
+              selectedSlots[3].CharacterName,
+              selectedSlots[3].CharacterClassName,
+            )
           : null,
       })
 
@@ -268,21 +330,150 @@ export default function RaidSchedulePage() {
 
       if (error) throw error
 
-      toast.success(currentState ? '미완료로 변경되었습니다.' : '완료 처리되었습니다.')
+      toast.success(
+        currentState ? '미완료로 변경되었습니다.' : '완료 처리되었습니다.',
+      )
     } catch (error) {
       console.error('Error updating schedule:', error)
       toast.error('상태 변경에 실패했습니다.')
     }
   }
 
+  // 슬롯 편집 시작
+  const handleStartEditSlot = (scheduleId: number, slotIndex: number) => {
+    setEditingScheduleId(scheduleId)
+    setEditingSlotIndex(slotIndex)
+    setEditCharacters([])
+    setSelectedEditCharacter(null)
+  }
+
+  // 슬롯 편집 취소
+  const handleCancelEdit = () => {
+    setEditingScheduleId(null)
+    setEditingSlotIndex(null)
+    setEditCharacters([])
+    setSelectedEditCharacter(null)
+  }
+
+  // 캐릭터가 현재 스케줄에 몇 번 등록되어 있는지 확인
+  const getCharacterUsageCount = (
+    characterName: string,
+    excludeScheduleId?: number,
+    excludeSlotIndex?: number,
+  ) => {
+    let count = 0
+    schedules.forEach((schedule) => {
+      schedule.slots.forEach((slot, idx) => {
+        // 현재 편집 중인 슬롯은 제외
+        if (excludeScheduleId === schedule.id && excludeSlotIndex === idx) {
+          return
+        }
+
+        const slotData = parseSlotData(slot)
+        if (slotData && slotData.name === characterName) {
+          count++
+        }
+      })
+    })
+    return count
+  }
+
+  // 슬롯 업데이트
+  const handleUpdateSlot = async (scheduleId: number, slotIndex: number) => {
+    if (!selectedEditCharacter) {
+      toast.error('캐릭터를 선택해주세요.')
+      return
+    }
+
+    // 캐릭터 사용 횟수 체크 (현재 편집 중인 슬롯 제외)
+    const usageCount = getCharacterUsageCount(
+      selectedEditCharacter.CharacterName,
+      scheduleId,
+      slotIndex,
+    )
+    if (usageCount >= 3) {
+      toast.error(
+        `${selectedEditCharacter.CharacterName}은(는) 이미 3회 등록되어 있어 더 이상 추가할 수 없습니다.`,
+      )
+      return
+    }
+
+    const schedule = schedules.find((s) => s.id === scheduleId)
+    if (!schedule) return
+
+    // 레이드 입장 레벨 체크
+    const selectedRaid = raidList.find((r) => r.name === schedule.raidName)
+    if (
+      selectedRaid &&
+      selectedEditCharacter.ItemLevel < selectedRaid.minItemLevel
+    ) {
+      toast.error(
+        `선택한 캐릭터의 아이템 레벨(${selectedEditCharacter.ItemLevel})이 레이드 입장 레벨(${selectedRaid.minItemLevel})에 미달합니다.`,
+      )
+      return
+    }
+
+    try {
+      const slotKey = `slot_${slotIndex + 1}` as
+        | 'slot_1'
+        | 'slot_2'
+        | 'slot_3'
+        | 'slot_4'
+      const { error } = await supabase
+        .from('schedules')
+        .update({
+          [slotKey]: formatCharacterForTable(
+            selectedEditCharacter.CharacterName,
+            selectedEditCharacter.CharacterClassName,
+          ),
+        })
+        .eq('id', scheduleId)
+
+      if (error) throw error
+
+      toast.success('캐릭터가 변경되었습니다.')
+      handleCancelEdit()
+    } catch (error) {
+      console.error('Error updating slot:', error)
+      toast.error('캐릭터 변경에 실패했습니다.')
+    }
+  }
+
+  // 슬롯 비우기
+  const handleClearSlot = async (scheduleId: number, slotIndex: number) => {
+    if (!confirm('이 슬롯을 비우시겠습니까?')) return
+
+    try {
+      const slotKey = `slot_${slotIndex + 1}` as
+        | 'slot_1'
+        | 'slot_2'
+        | 'slot_3'
+        | 'slot_4'
+      const { error } = await supabase
+        .from('schedules')
+        .update({ [slotKey]: null })
+        .eq('id', scheduleId)
+
+      if (error) throw error
+
+      toast.success('슬롯이 비워졌습니다.')
+    } catch (error) {
+      console.error('Error clearing slot:', error)
+      toast.error('슬롯 비우기에 실패했습니다.')
+    }
+  }
+
   // 현재 선택된 레이드의 입장 레벨 정보
   const getSelectedRaidInfo = () => {
     if (!newRaid) return null
-    return raidList.find(r => r.name === newRaid)
+    return raidList.find((r) => r.name === newRaid)
   }
 
   // 슬롯별 입장 가능 여부 체크
-  const getSlotStatus = (slot: ExpeditionCharacter | null, minLevel: number) => {
+  const getSlotStatus = (
+    slot: ExpeditionCharacter | null,
+    minLevel: number,
+  ) => {
     if (!slot) return null
     return slot.ItemLevel >= minLevel
   }
@@ -290,25 +481,153 @@ export default function RaidSchedulePage() {
   const selectedRaidInfo = getSelectedRaidInfo()
 
   // 슬롯 렌더링 컴포넌트
-  const SlotCell = ({ slotText }: { slotText: string | null }) => {
+  const SlotCell = ({
+    scheduleId,
+    slotIndex,
+    slotText,
+  }: {
+    scheduleId: number
+    slotIndex: number
+    slotText: string | null
+  }) => {
     const slotData = parseSlotData(slotText)
-    
+    const isEditing =
+      editingScheduleId === scheduleId && editingSlotIndex === slotIndex
+
+    if (isEditing) {
+      return (
+        <div className="space-y-2">
+          <AccountSearch
+            expeditionIndex={1}
+            onResult={(chars) => {
+              setEditCharacters(chars)
+              if (chars.length > 0) {
+                // 첫 번째 캐릭터가 3회 이상 등록되어 있으면 선택 가능한 첫 캐릭터 찾기
+                const firstAvailableChar = chars.find(
+                  (c) =>
+                    getCharacterUsageCount(
+                      c.CharacterName,
+                      scheduleId,
+                      slotIndex,
+                    ) < 3,
+                )
+                setSelectedEditCharacter(firstAvailableChar ?? null)
+              }
+            }}
+          />
+          {editCharacters.length > 0 && (
+            <Select
+              value={selectedEditCharacter?.CharacterName ?? ''}
+              onValueChange={(characterName) => {
+                const char =
+                  editCharacters.find(
+                    (c) => c.CharacterName === characterName,
+                  ) ?? null
+                setSelectedEditCharacter(char)
+              }}
+            >
+              <SelectTrigger className="w-full bg-zinc-700 text-white border-gray-600 text-sm h-8">
+                <SelectValue placeholder="캐릭터 선택" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-800 border-gray-600">
+                {editCharacters
+                  .sort((a, b) => b.ItemLevel - a.ItemLevel)
+                  .map((c) => {
+                    const usageCount = getCharacterUsageCount(
+                      c.CharacterName,
+                      scheduleId,
+                      slotIndex,
+                    )
+                    const isDisabled = usageCount >= 3
+                    return (
+                      <SelectItem
+                        key={c.CharacterName}
+                        value={c.CharacterName}
+                        disabled={isDisabled}
+                        className={
+                          isDisabled
+                            ? 'text-gray-500 data-[disabled]:opacity-50'
+                            : 'text-white'
+                        }
+                      >
+                        {c.CharacterName} / {c.CharacterClassName} (
+                        {c.ItemLevel.toLocaleString()})
+                        {isDisabled ? ' - 3회 등록됨' : ''}
+                      </SelectItem>
+                    )
+                  })}
+              </SelectContent>
+            </Select>
+          )}
+          <div className="flex gap-1">
+            <button
+              onClick={() => handleUpdateSlot(scheduleId, slotIndex)}
+              className="flex-1 flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs transition-colors"
+              title="저장"
+            >
+              <Save size={14} />
+              저장
+            </button>
+            <button
+              onClick={handleCancelEdit}
+              className="flex-1 flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded text-xs transition-colors"
+              title="취소"
+            >
+              <X size={14} />
+              취소
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     if (!slotData) {
-      return <span className="text-gray-500">-</span>
+      return (
+        <div className="flex items-center justify-between">
+          <span className="text-gray-500 mr-[10px]">-</span>
+          <button
+            onClick={() => handleStartEditSlot(scheduleId, slotIndex)}
+            className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+            title="캐릭터 추가"
+          >
+            <Edit2 size={14} />
+          </button>
+        </div>
+      )
     }
 
     const role = slotData.className ? getClassRole(slotData.className) : null
     const Icon = role === 'support' ? Heart : Swords
 
     return (
-      <div className="flex items-center gap-2">
-        {role && (
-          <Icon 
-            size={16} 
-            className={role === 'support' ? 'text-green-400' : 'text-red-400'}
-          />
-        )}
-        <span>{slotData.name} / {slotData.className || '미상'}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {role && (
+            <Icon
+              size={16}
+              className={role === 'support' ? 'text-green-400' : 'text-red-400'}
+            />
+          )}
+          <span>
+            {slotData.name} / {slotData.className || '미상'}
+          </span>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => handleStartEditSlot(scheduleId, slotIndex)}
+            className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+            title="캐릭터 변경"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={() => handleClearSlot(scheduleId, slotIndex)}
+            className="p-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+            title="슬롯 비우기"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </div>
     )
   }
@@ -330,10 +649,13 @@ export default function RaidSchedulePage() {
 
         {/* 캐릭터 검색 및 선택 */}
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4">캐릭터 검색 및 선택</h2>
-          <RaidSetup 
+          <h2 className="text-xl font-semibold text-white mb-4">
+            캐릭터 검색 및 선택
+          </h2>
+          <RaidSetup
             selectedSlots={selectedSlots}
             onSlotsChange={setSelectedSlots}
+            getCharacterUsageCount={getCharacterUsageCount}
           />
         </div>
 
@@ -347,18 +669,22 @@ export default function RaidSchedulePage() {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 레이드 종류
               </label>
-              <select
-                value={newRaid}
-                onChange={(e) => setNewRaid(e.target.value)}
-                className="w-full rounded bg-zinc-700 px-3 py-2 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="" className="text-zinc-400">레이드 선택</option>
-                {raidList.map((raid) => (
-                  <option key={raid.name} value={raid.name} className="text-white">
-                    {raid.name} (입장 {raid.minItemLevel})
-                  </option>
-                ))}
-              </select>
+              <Select value={newRaid} onValueChange={setNewRaid}>
+                <SelectTrigger className="w-full bg-zinc-700 text-white border-gray-600">
+                  <SelectValue placeholder="레이드 선택" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-gray-600">
+                  {raidList.map((raid) => (
+                    <SelectItem
+                      key={raid.name}
+                      value={raid.name}
+                      className="text-white"
+                    >
+                      {raid.name} (입장 {raid.minItemLevel})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 추가 버튼 */}
@@ -374,31 +700,36 @@ export default function RaidSchedulePage() {
           {/* 현재 선택된 슬롯 미리보기 (입장 가능 여부 표시) */}
           <div className="mt-4 grid grid-cols-4 gap-3">
             {selectedSlots.map((slot, idx) => {
-              const canEnter = selectedRaidInfo 
+              const canEnter = selectedRaidInfo
                 ? getSlotStatus(slot, selectedRaidInfo.minItemLevel)
                 : null
-              
+
               const role = slot ? getClassRole(slot.CharacterClassName) : null
-              const Icon = role === 'support' ? Heart : role === 'dealer' ? Swords : null
+              const Icon =
+                role === 'support' ? Heart : role === 'dealer' ? Swords : null
 
               return (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className={`rounded px-3 py-2 text-sm border ${
-                    canEnter === false 
-                      ? 'bg-red-900/30 border-red-600' 
+                    canEnter === false
+                      ? 'bg-red-900/30 border-red-600'
                       : canEnter === true
-                      ? 'bg-green-900/30 border-green-600'
-                      : 'bg-gray-700 border-gray-600'
+                        ? 'bg-green-900/30 border-green-600'
+                        : 'bg-gray-700 border-gray-600'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">슬롯 {idx + 1}:</span>
                     <div className="flex items-center gap-1">
                       {Icon && (
-                        <Icon 
-                          size={14} 
-                          className={role === 'support' ? 'text-green-400' : 'text-red-400'}
+                        <Icon
+                          size={14}
+                          className={
+                            role === 'support'
+                              ? 'text-green-400'
+                              : 'text-red-400'
+                          }
                         />
                       )}
                       {canEnter === false && (
@@ -409,13 +740,22 @@ export default function RaidSchedulePage() {
                   <div className="mt-1">
                     {slot ? (
                       <>
-                        <div className="text-white font-medium">{slot.CharacterName}</div>
-                        <div className="text-xs text-gray-400">{slot.CharacterClassName}</div>
-                        <div className={`text-xs ${
-                          canEnter === false ? 'text-red-400' : 'text-gray-400'
-                        }`}>
+                        <div className="text-white font-medium">
+                          {slot.CharacterName}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {slot.CharacterClassName}
+                        </div>
+                        <div
+                          className={`text-xs ${
+                            canEnter === false
+                              ? 'text-red-400'
+                              : 'text-gray-400'
+                          }`}
+                        >
                           {slot.ItemLevel.toLocaleString()}
-                          {selectedRaidInfo && ` / ${selectedRaidInfo.minItemLevel}`}
+                          {selectedRaidInfo &&
+                            ` / ${selectedRaidInfo.minItemLevel}`}
                         </div>
                       </>
                     ) : (
@@ -428,18 +768,23 @@ export default function RaidSchedulePage() {
           </div>
 
           {/* 입장 불가 경고 */}
-          {selectedRaidInfo && checkItemLevelRequirement().invalidSlots.length > 0 && (
-            <div className="mt-4 flex items-start gap-2 bg-red-900/20 border border-red-600 rounded-lg px-4 py-3">
-              <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="text-red-400 font-medium">입장 레벨 미달</p>
-                <p className="text-red-300 mt-1">
-                  슬롯 {checkItemLevelRequirement().invalidSlots.join(', ')}의 캐릭터가 
-                  입장 레벨({selectedRaidInfo.minItemLevel})에 미달합니다.
-                </p>
+          {selectedRaidInfo &&
+            checkItemLevelRequirement().invalidSlots.length > 0 && (
+              <div className="mt-4 flex items-start gap-2 bg-red-900/20 border border-red-600 rounded-lg px-4 py-3">
+                <AlertCircle
+                  size={20}
+                  className="text-red-400 flex-shrink-0 mt-0.5"
+                />
+                <div className="text-sm">
+                  <p className="text-red-400 font-medium">입장 레벨 미달</p>
+                  <p className="text-red-300 mt-1">
+                    슬롯 {checkItemLevelRequirement().invalidSlots.join(', ')}의
+                    캐릭터가 입장 레벨({selectedRaidInfo.minItemLevel})에
+                    미달합니다.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         {/* 레이드 스케줄 테이블 */}
@@ -447,25 +792,45 @@ export default function RaidSchedulePage() {
           <table className="w-full">
             <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">완료</th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300">레이드 종류</th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 1</th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 2</th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 3</th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300">슬롯 4</th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">작업</th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">
+                  완료
+                </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">
+                  레이드 종류
+                </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">
+                  슬롯 1
+                </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">
+                  슬롯 2
+                </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">
+                  슬롯 3
+                </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">
+                  슬롯 4
+                </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">
+                  작업
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+                  <td
+                    colSpan={7}
+                    className="px-6 py-8 text-center text-gray-400"
+                  >
                     로딩 중...
                   </td>
                 </tr>
               ) : schedules.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+                  <td
+                    colSpan={7}
+                    className="px-6 py-8 text-center text-gray-400"
+                  >
                     등록된 레이드 스케줄이 없습니다.
                   </td>
                 </tr>
@@ -479,7 +844,12 @@ export default function RaidSchedulePage() {
                   >
                     <td className="px-6 py-4 text-center">
                       <button
-                        onClick={() => handleToggleComplete(schedule.id, schedule.isCompleted)}
+                        onClick={() =>
+                          handleToggleComplete(
+                            schedule.id,
+                            schedule.isCompleted,
+                          )
+                        }
                         className={`p-2 rounded-lg transition-colors ${
                           schedule.isCompleted
                             ? 'bg-green-600 hover:bg-green-700 text-white'
@@ -490,11 +860,20 @@ export default function RaidSchedulePage() {
                         <Check size={18} />
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-white font-medium text-center">{schedule.raidName}</td>
+                    <td className="px-6 py-4 text-white font-medium text-center">
+                      {schedule.raidName}
+                    </td>
                     {schedule.slots.map((slot, idx) => (
-                      <td key={idx} className="px-6 py-4 text-gray-300 text-center">
+                      <td
+                        key={idx}
+                        className="px-6 py-4 text-gray-300 text-center"
+                      >
                         <div className="flex justify-center">
-                          <SlotCell slotText={slot} />
+                          <SlotCell
+                            scheduleId={schedule.id}
+                            slotIndex={idx}
+                            slotText={slot}
+                          />
                         </div>
                       </td>
                     ))}
@@ -516,8 +895,14 @@ export default function RaidSchedulePage() {
 
         {/* 안내 문구 */}
         <div className="mt-4 text-sm text-gray-400 space-y-1">
-          <p>💡 캐릭터를 검색하고 슬롯에 선택한 후, 레이드 종류를 선택하여 추가하세요.</p>
-          <p>⚠️ 선택한 캐릭터의 아이템 레벨이 레이드 입장 레벨보다 낮으면 추가할 수 없습니다.</p>
+          <p>
+            💡 캐릭터를 검색하고 슬롯에 선택한 후, 레이드 종류를 선택하여
+            추가하세요.
+          </p>
+          <p>
+            ⚠️ 선택한 캐릭터의 아이템 레벨이 레이드 입장 레벨보다 낮으면 추가할
+            수 없습니다.
+          </p>
           <p>🔄 매주 수요일 오전 6시에 완료 상태가 자동으로 초기화됩니다.</p>
         </div>
       </div>

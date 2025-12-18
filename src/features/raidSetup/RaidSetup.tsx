@@ -7,17 +7,21 @@ import RaidSlot from '@/features/raidSetup/RaidSlot'
 type Props = {
   selectedSlots?: (ExpeditionCharacter | null)[]
   onSlotsChange?: (slots: (ExpeditionCharacter | null)[]) => void
+  getCharacterUsageCount?: (characterName: string) => number
 }
 
-export default function RaidSetup({ selectedSlots: externalSlots, onSlotsChange }: Props) {
-  const [accounts, setAccounts] = useState<Record<number, ExpeditionCharacter[]>>({})
-  
-  const [internalSlots, setInternalSlots] = useState<(ExpeditionCharacter | null)[]>([
-    null,
-    null,
-    null,
-    null,
-  ])
+export default function RaidSetup({
+  selectedSlots: externalSlots,
+  onSlotsChange,
+  getCharacterUsageCount,
+}: Props) {
+  const [accounts, setAccounts] = useState<
+    Record<number, ExpeditionCharacter[]>
+  >({})
+
+  const [internalSlots, setInternalSlots] = useState<
+    (ExpeditionCharacter | null)[]
+  >([null, null, null, null])
 
   const slots = externalSlots !== undefined ? externalSlots : internalSlots
   const setSlots = onSlotsChange || setInternalSlots
@@ -55,6 +59,7 @@ export default function RaidSetup({ selectedSlots: externalSlots, onSlotsChange 
               characters={accounts[expeditionIndex] ?? []}
               value={slot}
               onChange={(char) => handleSlotChange(idx, char)}
+              getCharacterUsageCount={getCharacterUsageCount}
             />
           )
         })}
