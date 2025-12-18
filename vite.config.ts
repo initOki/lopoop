@@ -21,4 +21,8 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: [],
+  },
 })

@@ -23,6 +23,10 @@ import type { Database } from '@/types/database'
 import { getClassRole, formatCharacterForTable } from '@/utils/classUtils'
 import AccountSearch from '@/features/characterSearch/AccountSearch'
 import {
+  serializeRaidSetupState,
+  deserializeRaidSetupState,
+} from '@/features/raidSetup/filterUtils'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -66,6 +70,7 @@ function parseSlotData(slotText: string | null): SlotData {
 }
 
 const LAST_RESET_KEY = 'raid_schedule_last_reset'
+const RAID_SETUP_STATE_KEY = 'raid_setup_state'
 
 type SortField = 'raidName' | 'isCompleted' | 'createdAt'
 type SortDirection = 'asc' | 'desc' | null
@@ -74,8 +79,8 @@ export default function RaidSchedulePage() {
   const [schedules, setSchedules] = useState<RaidSchedule[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // 새 레이드 추가 상태
-  const [newRaid, setNewRaid] = useState('')
+  // 새 레이드 추가 상태 - 이제 RaidSetup에서 관리
+  const [selectedRaid, setSelectedRaid] = useState('')
   const [selectedSlots, setSelectedSlots] = useState<
     (ExpeditionCharacter | null)[]
   >([null, null, null, null])
@@ -99,6 +104,30 @@ export default function RaidSchedulePage() {
   const [filterCharacter, setFilterCharacter] = useState('')
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+
+  // 초기 상태 복원
+  useEffect(() => {
+    const savedState = localStorage.getItem(RAID_SETUP_STATE_KEY)
+    if (savedState) {
+      const restoredState = deserializeRaidSetupState(savedState)
+      if (restoredState) {
+        // 레이드 선택 복원
+        setSelectedRaid(restoredState.selectedRaid)
+        // 슬롯 선택 복원
+        setSelectedSlots(restoredState.selectedSlots)
+      }
+    }
+  }, [])
+
+  // 상태 변경 시 저장
+  useEffect(() => {
+    if (selectedRaid || selectedSlots.some((slot) => slot !== null)) {
+      const serialized = serializeRaidSetupState(selectedRaid, selectedSlots)
+      if (serialized) {
+        localStorage.setItem(RAID_SETUP_STATE_KEY, serialized)
+      }
+    }
+  }, [selectedRaid, selectedSlots])
 
   useEffect(() => {
     checkAndResetIfNeeded()
@@ -227,15 +256,15 @@ export default function RaidSchedulePage() {
     valid: boolean
     invalidSlots: number[]
   } => {
-    if (!newRaid) return { valid: true, invalidSlots: [] }
-
-    const selectedRaid = raidList.find((r) => r.name === newRaid)
     if (!selectedRaid) return { valid: true, invalidSlots: [] }
+
+    const selectedRaidInfo = raidList.find((r) => r.name === selectedRaid)
+    if (!selectedRaidInfo) return { valid: true, invalidSlots: [] }
 
     const invalidSlots: number[] = []
 
     selectedSlots.forEach((slot, idx) => {
-      if (slot && slot.ItemLevel < selectedRaid.minItemLevel) {
+      if (slot && slot.ItemLevel < selectedRaidInfo.minItemLevel) {
         invalidSlots.push(idx + 1)
       }
     })
@@ -247,7 +276,7 @@ export default function RaidSchedulePage() {
   }
 
   const handleAddSchedule = async () => {
-    if (!newRaid) {
+    if (!selectedRaid) {
       toast.error('레이드를 선택해주세요.')
       return
     }
@@ -256,9 +285,9 @@ export default function RaidSchedulePage() {
     const { valid, invalidSlots } = checkItemLevelRequirement()
 
     if (!valid) {
-      const selectedRaid = raidList.find((r) => r.name === newRaid)
+      const selectedRaidInfo = raidList.find((r) => r.name === selectedRaid)
       toast.error(
-        `슬롯 ${invalidSlots.join(', ')}의 캐릭터가 입장 레벨(${selectedRaid?.minItemLevel})에 미달합니다.`,
+        `슬롯 ${invalidSlots.join(', ')}의 캐릭터가 입장 레벨(${selectedRaidInfo?.minItemLevel})에 미달합니다.`,
       )
       return
     }
@@ -283,7 +312,7 @@ export default function RaidSchedulePage() {
 
     try {
       const { error } = await supabase.from('schedules').insert({
-        raid_name: newRaid,
+        raid_name: selectedRaid,
         slot_1: selectedSlots[0]
           ? formatCharacterForTable(
               selectedSlots[0].CharacterName,
@@ -313,7 +342,7 @@ export default function RaidSchedulePage() {
       if (error) throw error
 
       toast.success('레이드 스케줄이 추가되었습니다.')
-      setNewRaid('')
+      setSelectedRaid('')
       setSelectedSlots([null, null, null, null])
     } catch (error) {
       console.error('Error adding schedule:', error)
@@ -480,8 +509,8 @@ export default function RaidSchedulePage() {
 
   // 현재 선택된 레이드의 입장 레벨 정보
   const getSelectedRaidInfo = () => {
-    if (!newRaid) return null
-    return raidList.find((r) => r.name === newRaid)
+    if (!selectedRaid) return null
+    return raidList.find((r) => r.name === selectedRaid)
   }
 
   // 슬롯별 입장 가능 여부 체크
@@ -759,6 +788,8 @@ export default function RaidSchedulePage() {
           <RaidSetup
             selectedSlots={selectedSlots}
             onSlotsChange={setSelectedSlots}
+            selectedRaid={selectedRaid}
+            onRaidChange={setSelectedRaid}
             getCharacterUsageCount={getCharacterUsageCount}
           />
         </div>
@@ -767,30 +798,7 @@ export default function RaidSchedulePage() {
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-semibold text-white mb-4">레이드 추가</h2>
 
-          <div className="flex gap-3 items-end">
-            {/* 레이드 선택 */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                레이드 종류
-              </label>
-              <Select value={newRaid} onValueChange={setNewRaid}>
-                <SelectTrigger className="w-full bg-zinc-700 text-white border-gray-600">
-                  <SelectValue placeholder="레이드 선택" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-gray-600">
-                  {raidList.map((raid) => (
-                    <SelectItem
-                      key={raid.name}
-                      value={raid.name}
-                      className="text-white"
-                    >
-                      {raid.name} (입장 {raid.minItemLevel})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+          <div className="flex justify-center">
             {/* 추가 버튼 */}
             <button
               onClick={handleAddSchedule}

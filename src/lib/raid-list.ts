@@ -5,7 +5,7 @@ export type RaidInfo = {
 
 export const raidList: RaidInfo[] = [
   { name: '서막 / 에키드나 하드', minItemLevel: 1640 },
-  { name: '베히모스', minItemLevel: 1660 },
+  { name: '베히모스', minItemLevel: 1640 },
   { name: '1막 / 에기르 노말', minItemLevel: 1660 },
   { name: '1막 / 에기르 하드', minItemLevel: 1680 },
   { name: '2막 / 아브렐슈드 노말', minItemLevel: 1670 },
