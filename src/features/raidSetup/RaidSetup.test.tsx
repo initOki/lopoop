@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import RaidSetup from './RaidSetup'
 import type { ExpeditionCharacter } from '@/types/loa'
