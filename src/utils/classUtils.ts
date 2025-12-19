@@ -51,8 +51,13 @@ export function formatCharacterForSelect(
   name: string,
   className: string,
   itemLevel: number,
+  stats?: number,
 ): string {
-  return `${name} / ${className} (${itemLevel.toLocaleString()})`
+  const itemLevelStr = itemLevel.toLocaleString()
+  if (stats) {
+    return `${name} / ${className} (${itemLevelStr} / ${stats.toLocaleString()})`
+  }
+  return `${name} / ${className} (${itemLevelStr})`
 }
 
 /**
@@ -61,6 +66,10 @@ export function formatCharacterForSelect(
 export function formatCharacterForTable(
   name: string,
   className: string,
+  stats?: number,
 ): string {
+  if (stats) {
+    return `${name} / ${className} / ${stats}`
+  }
   return `${name} / ${className}`
 }

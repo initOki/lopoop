@@ -90,6 +90,7 @@ export default function RaidSlot({
                     c.CharacterName,
                     c.CharacterClassName,
                     c.ItemLevel ?? 0, // 아이템 레벨 데이터 누락 시 0으로 처리
+                    c.Stats, // 전투력
                   )}
                   {isDisabled ? ' - 3회 등록됨' : ''}
                 </SelectItem>

@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import type { ExpeditionCharacter } from '@/types/loa'
-import { fetchCharacterSiblings } from '@/features/characterSearch/loaApi'
+import {
+  fetchCharacterSiblings,
+  fetchCharacterProfile,
+} from '@/features/characterSearch/loaApi'
 
 type Props = {
   expeditionIndex: number
   onResult: (chars: ExpeditionCharacter[]) => void
 }
 
-export default function AccountSearch({
-  expeditionIndex,
-  onResult,
-}: Props) {
+export default function AccountSearch({ expeditionIndex, onResult }: Props) {
   const [keyword, setKeyword] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -21,15 +21,41 @@ export default function AccountSearch({
       setLoading(true)
       const result = await fetchCharacterSiblings(keyword.trim())
 
-      onResult(
-        result.map((c) => ({
-          CharacterName: c.CharacterName,
-          ItemLevel: Number(c.ItemAvgLevel.replace(/,/g, '')),
-          ServerName: c.ServerName,
-          CharacterClassName: c.CharacterClassName,
-          ExpeditionIndex: expeditionIndex,
-        })),
+      // 각 캐릭터의 전투력 정보를 병렬로 가져오기
+      const charactersWithStats = await Promise.all(
+        result.map(async (c) => {
+          const profile = await fetchCharacterProfile(c.CharacterName)
+
+          // API 응답 로깅
+          console.log(`${c.CharacterName} 프로필:`, profile)
+          console.log(`${c.CharacterName} 전투력:`, profile?.Stats)
+
+          // Stats 배열에서 전투력 찾기
+          let combatPower: number | undefined
+          if (profile?.Stats) {
+            const statEntry = profile.Stats.find(
+              (stat) => stat.Type === '최대 생명력',
+            )
+            console.log(`${c.CharacterName} 최대 생명력 스탯:`, statEntry)
+
+            // 모든 Stats 출력
+            console.log(`${c.CharacterName} 모든 Stats:`, profile.Stats)
+          }
+
+          return {
+            CharacterName: c.CharacterName,
+            ItemLevel: Number(c.ItemAvgLevel.replace(/,/g, '')),
+            ServerName: c.ServerName,
+            CharacterClassName: c.CharacterClassName,
+            ExpeditionIndex: expeditionIndex,
+            Stats: profile?.Stats?.[0]
+              ? parseInt(profile.Stats[0].Value.replace(/,/g, ''))
+              : undefined,
+          }
+        }),
       )
+
+      onResult(charactersWithStats)
     } finally {
       setLoading(false)
     }
@@ -37,9 +63,7 @@ export default function AccountSearch({
 
   return (
     <div className="space-y-2">
-      <p className="font-semibold text-white">
-        계정 {expeditionIndex}
-      </p>
+      <p className="font-semibold text-white">계정 {expeditionIndex}</p>
 
       <div className="flex gap-2">
         <input

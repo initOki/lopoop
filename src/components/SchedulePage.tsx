@@ -42,19 +42,30 @@ type RaidSchedule = {
   slots: (string | null)[]
   isCompleted: boolean
   createdAt: Date
+  averageStats?: number
 }
 
 // 슬롯 데이터 파싱
 type SlotData = {
   name: string
   className: string
+  stats?: number
 } | null
 
 function parseSlotData(slotText: string | null): SlotData {
   if (!slotText) return null
 
-  // "캐릭터이름 / 직업" 형식으로 저장된 경우
+  // "캐릭터이름 / 직업 / 전투력" 형식으로 저장된 경우
   const parts = slotText.split(' / ')
+  if (parts.length === 3) {
+    return {
+      name: parts[0].trim(),
+      className: parts[1].trim(),
+      stats: parseInt(parts[2].trim()),
+    }
+  }
+
+  // "캐릭터이름 / 직업" 형식으로 저장된 경우 (하위 호환성)
   if (parts.length === 2) {
     return {
       name: parts[0].trim(),
@@ -222,13 +233,31 @@ export default function RaidSchedulePage() {
     localStorage.setItem(LAST_RESET_KEY, new Date().toISOString())
   }
 
-  const rowToSchedule = (row: ScheduleRow): RaidSchedule => ({
-    id: row.id,
-    raidName: row.raid_name,
-    slots: [row.slot_1, row.slot_2, row.slot_3, row.slot_4],
-    isCompleted: row.is_completed,
-    createdAt: new Date(row.created_at),
-  })
+  const rowToSchedule = (row: ScheduleRow): RaidSchedule => {
+    const slots = [row.slot_1, row.slot_2, row.slot_3, row.slot_4]
+
+    // 평균 전투력 계산
+    const statsValues = slots
+      .map((slot) => parseSlotData(slot)?.stats)
+      .filter((stats): stats is number => stats !== undefined)
+
+    const averageStats =
+      statsValues.length > 0
+        ? Math.round(
+            statsValues.reduce((sum, stats) => sum + stats, 0) /
+              statsValues.length,
+          )
+        : undefined
+
+    return {
+      id: row.id,
+      raidName: row.raid_name,
+      slots,
+      isCompleted: row.is_completed,
+      createdAt: new Date(row.created_at),
+      averageStats,
+    }
+  }
 
   const fetchSchedules = async () => {
     try {
@@ -317,24 +346,28 @@ export default function RaidSchedulePage() {
           ? formatCharacterForTable(
               selectedSlots[0].CharacterName,
               selectedSlots[0].CharacterClassName,
+              selectedSlots[0].Stats,
             )
           : null,
         slot_2: selectedSlots[1]
           ? formatCharacterForTable(
               selectedSlots[1].CharacterName,
               selectedSlots[1].CharacterClassName,
+              selectedSlots[1].Stats,
             )
           : null,
         slot_3: selectedSlots[2]
           ? formatCharacterForTable(
               selectedSlots[2].CharacterName,
               selectedSlots[2].CharacterClassName,
+              selectedSlots[2].Stats,
             )
           : null,
         slot_4: selectedSlots[3]
           ? formatCharacterForTable(
               selectedSlots[3].CharacterName,
               selectedSlots[3].CharacterClassName,
+              selectedSlots[3].Stats,
             )
           : null,
       })
@@ -469,6 +502,7 @@ export default function RaidSchedulePage() {
           [slotKey]: formatCharacterForTable(
             selectedEditCharacter.CharacterName,
             selectedEditCharacter.CharacterClassName,
+            selectedEditCharacter.Stats,
           ),
         })
         .eq('id', scheduleId)
@@ -523,6 +557,22 @@ export default function RaidSchedulePage() {
   }
 
   const selectedRaidInfo = getSelectedRaidInfo()
+
+  // 파티 평균 전투력 계산
+  const calculateAverageStats = () => {
+    const slotsWithStats = selectedSlots.filter(
+      (slot) => slot !== null && slot.Stats !== undefined,
+    )
+    if (slotsWithStats.length === 0) return null
+
+    const totalStats = slotsWithStats.reduce(
+      (sum, slot) => sum + (slot!.Stats || 0),
+      0,
+    )
+    return Math.round(totalStats / slotsWithStats.length)
+  }
+
+  const averageStats = calculateAverageStats()
 
   // 필터링 및 정렬된 스케줄
   const filteredAndSortedSchedules = useMemo(() => {
@@ -680,7 +730,8 @@ export default function RaidSchedulePage() {
                         }
                       >
                         {c.CharacterName} / {c.CharacterClassName} (
-                        {c.ItemLevel.toLocaleString()})
+                        {c.ItemLevel.toLocaleString()}
+                        {c.Stats ? ` / ${c.Stats.toLocaleString()}` : ''})
                         {isDisabled ? ' - 3회 등록됨' : ''}
                       </SelectItem>
                     )
@@ -731,18 +782,25 @@ export default function RaidSchedulePage() {
     return (
       <>
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {role && (
-              <Icon
-                size={16}
-                className={
-                  role === 'support' ? 'text-green-400' : 'text-red-400'
-                }
-              />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              {role && (
+                <Icon
+                  size={16}
+                  className={
+                    role === 'support' ? 'text-green-400' : 'text-red-400'
+                  }
+                />
+              )}
+              <span>
+                {slotData.name} / {slotData.className || '미상'}
+              </span>
+            </div>
+            {slotData.stats && (
+              <div className="text-xs text-blue-400 ml-6">
+                전투력: {slotData.stats.toLocaleString()}
+              </div>
             )}
-            <span>
-              {slotData.name} / {slotData.className || '미상'}
-            </span>
           </div>
           <div className="flex gap-1">
             <button
@@ -867,10 +925,15 @@ export default function RaidSchedulePage() {
                               : 'text-gray-400'
                           }`}
                         >
-                          {slot.ItemLevel.toLocaleString()}
+                          아이템: {slot.ItemLevel.toLocaleString()}
                           {selectedRaidInfo &&
                             ` / ${selectedRaidInfo.minItemLevel}`}
                         </div>
+                        {slot.Stats && (
+                          <div className="text-xs text-blue-400">
+                            전투력: {slot.Stats.toLocaleString()}
+                          </div>
+                        )}
                       </>
                     ) : (
                       <span className="text-gray-500">미선택</span>
@@ -880,6 +943,18 @@ export default function RaidSchedulePage() {
               )
             })}
           </div>
+
+          {/* 파티 평균 전투력 표시 */}
+          {averageStats && (
+            <div className="mt-3 flex items-center justify-center gap-2 bg-blue-900/30 border border-blue-600 rounded-lg px-4 py-2">
+              <span className="text-blue-400 font-medium">
+                파티 평균 전투력:
+              </span>
+              <span className="text-white font-bold text-lg">
+                {averageStats.toLocaleString()}
+              </span>
+            </div>
+          )}
 
           <div className="flex justify-center mt-[14px]">
             {/* 추가 버튼 */}
@@ -1013,6 +1088,9 @@ export default function RaidSchedulePage() {
                 <th className="px-6 py-3 text-sm font-semibold text-gray-300">
                   슬롯 4
                 </th>
+                <th className="px-6 py-3 text-sm font-semibold text-gray-300">
+                  평균 전투력
+                </th>
                 <th className="px-6 py-3 text-sm font-semibold text-gray-300 w-16">
                   작업
                 </th>
@@ -1022,7 +1100,7 @@ export default function RaidSchedulePage() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-6 py-8 text-center text-gray-400"
                   >
                     로딩 중...
@@ -1031,7 +1109,7 @@ export default function RaidSchedulePage() {
               ) : filteredAndSortedSchedules.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-6 py-8 text-center text-gray-400"
                   >
                     {schedules.length === 0
@@ -1082,6 +1160,15 @@ export default function RaidSchedulePage() {
                         </div>
                       </td>
                     ))}
+                    <td className="px-6 py-4 text-center">
+                      {schedule.averageStats ? (
+                        <span className="text-blue-400 font-semibold">
+                          {schedule.averageStats.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleDeleteSchedule(schedule.id)}
