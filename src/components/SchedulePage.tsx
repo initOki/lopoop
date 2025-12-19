@@ -798,17 +798,6 @@ export default function RaidSchedulePage() {
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <h2 className="text-xl font-semibold text-white mb-4">레이드 추가</h2>
 
-          <div className="flex justify-center">
-            {/* 추가 버튼 */}
-            <button
-              onClick={handleAddSchedule}
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={20} />
-              레이드 추가
-            </button>
-          </div>
-
           {/* 현재 선택된 슬롯 미리보기 (입장 가능 여부 표시) */}
           <div className="mt-4 grid grid-cols-4 gap-3">
             {selectedSlots.map((slot, idx) => {
@@ -877,6 +866,17 @@ export default function RaidSchedulePage() {
                 </div>
               )
             })}
+          </div>
+
+          <div className="flex justify-center mt-[14px]">
+            {/* 추가 버튼 */}
+            <button
+              onClick={handleAddSchedule}
+              className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={19} />
+              레이드 추가
+            </button>
           </div>
 
           {/* 입장 불가 경고 */}
