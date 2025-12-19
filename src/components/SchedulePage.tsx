@@ -836,6 +836,19 @@ export default function RaidSchedulePage() {
                       {canEnter === false && (
                         <AlertCircle size={14} className="text-red-400" />
                       )}
+                      {slot && (
+                        <button
+                          onClick={() => {
+                            const newSlots = [...selectedSlots]
+                            newSlots[idx] = null
+                            setSelectedSlots(newSlots)
+                          }}
+                          className="p-0.5 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                          title="캐릭터 제거"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="mt-1">
