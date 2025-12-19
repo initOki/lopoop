@@ -31,7 +31,6 @@ export default function AccountSearch({ expeditionIndex, onResult }: Props) {
           console.log(`${c.CharacterName} 전투력:`, profile?.Stats)
 
           // Stats 배열에서 전투력 찾기
-          let combatPower: number | undefined
           if (profile?.Stats) {
             const statEntry = profile.Stats.find(
               (stat) => stat.Type === '최대 생명력',
