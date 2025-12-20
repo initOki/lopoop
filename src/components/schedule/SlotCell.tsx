@@ -53,7 +53,11 @@ export default function SlotCell({
   if (isEditing) {
     return (
       <div className="space-y-2 w-full">
-        <AccountSearch expeditionIndex={1} onResult={onCharacterSearch} />
+        <AccountSearch
+          expeditionIndex={1}
+          onResult={onCharacterSearch}
+          compact={true}
+        />
         {editCharacters.length > 0 && (
           <Select
             value={selectedEditCharacter?.CharacterName ?? ''}
@@ -67,7 +71,7 @@ export default function SlotCell({
             <SelectTrigger className="w-full bg-zinc-700 text-white border-gray-600 text-xs h-7">
               <SelectValue placeholder="캐릭터 선택" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-gray-600">
+            <SelectContent className="bg-zinc-800 border-gray-600 max-h-48 overflow-y-auto">
               {editCharacters
                 .sort((a, b) => b.ItemLevel - a.ItemLevel)
                 .map((c) => {
@@ -88,14 +92,19 @@ export default function SlotCell({
                           : 'text-white'
                       }
                     >
-                      <div className="text-xs">
-                        <div className="font-medium truncate">
+                      <div className="text-xs w-full">
+                        <div
+                          className="font-medium truncate"
+                          title={c.CharacterName}
+                        >
                           {c.CharacterName}
                         </div>
-                        <div className="text-gray-400">
+                        <div className="text-gray-400 truncate">
                           {c.CharacterClassName} ({c.ItemLevel.toLocaleString()}
-                          {c.CombatPower ? ` / ${c.CombatPower}` : ''})
-                          {isDisabled ? ' - 3회 등록됨' : ''}
+                          {c.CombatPower
+                            ? ` / ${c.CombatPower.toLocaleString()}`
+                            : ''}
+                          ){isDisabled ? ' - 3회 등록됨' : ''}
                         </div>
                       </div>
                     </SelectItem>

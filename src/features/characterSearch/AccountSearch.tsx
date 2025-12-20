@@ -8,9 +8,14 @@ import {
 type Props = {
   expeditionIndex: number
   onResult: (chars: ExpeditionCharacter[]) => void
+  compact?: boolean
 }
 
-export default function AccountSearch({ expeditionIndex, onResult }: Props) {
+export default function AccountSearch({
+  expeditionIndex,
+  onResult,
+  compact = false,
+}: Props) {
   const [keyword, setKeyword] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -41,6 +46,52 @@ export default function AccountSearch({ expeditionIndex, onResult }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (compact) {
+    return (
+      <div className="flex gap-1">
+        <input
+          className="
+            flex-1
+            rounded
+            bg-zinc-800
+            px-2 py-1
+            text-white
+            placeholder:text-zinc-400
+            focus:outline-none
+            focus:ring-1 focus:ring-blue-500
+            text-xs
+            h-7
+          "
+          placeholder="닉네임 검색"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') search()
+          }}
+        />
+        <button
+          type="button"
+          disabled={loading}
+          onClick={search}
+          className="
+            rounded
+            bg-blue-600
+            px-2 py-1
+            text-white
+            hover:bg-blue-500
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+            text-xs
+            h-7
+            flex-shrink-0
+          "
+        >
+          {loading ? '검색중' : '검색'}
+        </button>
+      </div>
+    )
   }
 
   return (
