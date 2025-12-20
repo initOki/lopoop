@@ -1,41 +1,47 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchCharacterSiblings, type CharacterSummary } from './loaApi'
+import { useCharacterSiblings } from './loaApi'
 
 export function useCharacterSearch() {
   const [keyword, setKeyword] = useState('')
-  const [characters, setCharacters] = useState<CharacterSummary[]>([])
-  const [loading, setLoading] = useState(false)
+  const [debouncedKeyword, setDebouncedKeyword] = useState('')
   const throttleRef = useRef<number | null>(null)
 
-  const search = async (name: string) => {
-    if (!name) return
-    setLoading(true)
-    try {
-      const result = await fetchCharacterSiblings(name)
-      setCharacters(result)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 쓰로틀 (800ms)
+  // 800ms 디바운스
   useEffect(() => {
-    if (!keyword) return
-
     if (throttleRef.current) {
       window.clearTimeout(throttleRef.current)
     }
 
     throttleRef.current = window.setTimeout(() => {
-      search(keyword)
+      setDebouncedKeyword(keyword)
     }, 800)
+
+    return () => {
+      if (throttleRef.current) {
+        window.clearTimeout(throttleRef.current)
+      }
+    }
   }, [keyword])
+
+  // React Query 훅 사용
+  const {
+    data: characters = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useCharacterSiblings(debouncedKeyword)
+
+  const search = (name: string) => {
+    setKeyword(name)
+  }
 
   return {
     keyword,
     setKeyword,
     characters,
     loading,
+    error,
     search,
+    refetch,
   }
 }

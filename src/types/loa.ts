@@ -4,5 +4,5 @@ export type ExpeditionCharacter = {
   ServerName: string
   CharacterClassName: string
   ExpeditionIndex: number
-  Stats?: number // 전투력 (선택적)
+  CombatPower?: number // 전투력 (선택적)
 }

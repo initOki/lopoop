@@ -1,4 +1,5 @@
 import type { ExpeditionCharacter } from '@/types/loa'
+import { toast } from 'sonner'
 
 /**
  * 캐릭터 필터링 및 정렬 함수
@@ -117,7 +118,7 @@ export function validateSlots(
     const isValid = itemLevel >= newMinItemLevel
 
     if (!isValid) {
-      console.log(
+      toast.warning(
         `슬롯 ${index + 1}의 캐릭터 "${slot.CharacterName}"이 최소 아이템 레벨 ${newMinItemLevel}을 충족하지 않아 제거됩니다. (현재: ${itemLevel})`,
       )
     }

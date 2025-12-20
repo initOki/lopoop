@@ -52,8 +52,6 @@ export default function DebtPage() {
           table: 'debts',
         },
         (payload) => {
-          console.log('Real-time change detected in DebtPage:', payload)
-
           if (payload.eventType === 'INSERT') {
             const newRow = payload.new as DebtRow
             const newDebt: Debt = {

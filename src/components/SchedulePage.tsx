@@ -346,28 +346,28 @@ export default function RaidSchedulePage() {
           ? formatCharacterForTable(
               selectedSlots[0].CharacterName,
               selectedSlots[0].CharacterClassName,
-              selectedSlots[0].Stats,
+              selectedSlots[0].CombatPower,
             )
           : null,
         slot_2: selectedSlots[1]
           ? formatCharacterForTable(
               selectedSlots[1].CharacterName,
               selectedSlots[1].CharacterClassName,
-              selectedSlots[1].Stats,
+              selectedSlots[1].CombatPower,
             )
           : null,
         slot_3: selectedSlots[2]
           ? formatCharacterForTable(
               selectedSlots[2].CharacterName,
               selectedSlots[2].CharacterClassName,
-              selectedSlots[2].Stats,
+              selectedSlots[2].CombatPower,
             )
           : null,
         slot_4: selectedSlots[3]
           ? formatCharacterForTable(
               selectedSlots[3].CharacterName,
               selectedSlots[3].CharacterClassName,
-              selectedSlots[3].Stats,
+              selectedSlots[3].CombatPower,
             )
           : null,
       })
@@ -502,7 +502,7 @@ export default function RaidSchedulePage() {
           [slotKey]: formatCharacterForTable(
             selectedEditCharacter.CharacterName,
             selectedEditCharacter.CharacterClassName,
-            selectedEditCharacter.Stats,
+            selectedEditCharacter.CombatPower,
           ),
         })
         .eq('id', scheduleId)
@@ -561,12 +561,12 @@ export default function RaidSchedulePage() {
   // 파티 평균 전투력 계산
   const calculateAverageStats = () => {
     const slotsWithStats = selectedSlots.filter(
-      (slot) => slot !== null && slot.Stats !== undefined,
+      (slot) => slot !== null && slot.CombatPower !== undefined,
     )
     if (slotsWithStats.length === 0) return null
 
     const totalStats = slotsWithStats.reduce(
-      (sum, slot) => sum + (slot!.Stats || 0),
+      (sum, slot) => sum + (slot!.CombatPower || 0),
       0,
     )
     return Math.round(totalStats / slotsWithStats.length)
@@ -731,8 +731,10 @@ export default function RaidSchedulePage() {
                       >
                         {c.CharacterName} / {c.CharacterClassName} (
                         {c.ItemLevel.toLocaleString()}
-                        {c.Stats ? ` / ${c.Stats.toLocaleString()}` : ''})
-                        {isDisabled ? ' - 3회 등록됨' : ''}
+                        {c.CombatPower
+                          ? ` / ${c.CombatPower.toLocaleString()}`
+                          : ''}
+                        ){isDisabled ? ' - 3회 등록됨' : ''}
                       </SelectItem>
                     )
                   })}
@@ -929,9 +931,9 @@ export default function RaidSchedulePage() {
                           {selectedRaidInfo &&
                             ` / ${selectedRaidInfo.minItemLevel}`}
                         </div>
-                        {slot.Stats && (
+                        {slot.CombatPower && (
                           <div className="text-xs text-blue-400">
-                            전투력: {slot.Stats.toLocaleString()}
+                            전투력: {slot.CombatPower.toLocaleString()}
                           </div>
                         )}
                       </>

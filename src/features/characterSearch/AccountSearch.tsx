@@ -26,30 +26,13 @@ export default function AccountSearch({ expeditionIndex, onResult }: Props) {
         result.map(async (c) => {
           const profile = await fetchCharacterProfile(c.CharacterName)
 
-          // API 응답 로깅
-          console.log(`${c.CharacterName} 프로필:`, profile)
-          console.log(`${c.CharacterName} 전투력:`, profile?.Stats)
-
-          // Stats 배열에서 전투력 찾기
-          if (profile?.Stats) {
-            const statEntry = profile.Stats.find(
-              (stat) => stat.Type === '최대 생명력',
-            )
-            console.log(`${c.CharacterName} 최대 생명력 스탯:`, statEntry)
-
-            // 모든 Stats 출력
-            console.log(`${c.CharacterName} 모든 Stats:`, profile.Stats)
-          }
-
           return {
             CharacterName: c.CharacterName,
             ItemLevel: Number(c.ItemAvgLevel.replace(/,/g, '')),
             ServerName: c.ServerName,
             CharacterClassName: c.CharacterClassName,
             ExpeditionIndex: expeditionIndex,
-            Stats: profile?.Stats?.[0]
-              ? parseInt(profile.Stats[0].Value.replace(/,/g, ''))
-              : undefined,
+            CombatPower: profile?.CombatPower ? profile.CombatPower : undefined,
           }
         }),
       )

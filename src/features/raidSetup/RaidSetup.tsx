@@ -152,7 +152,7 @@ export default function RaidSetup({
         </Select>
         {selectedRaidInfo && (
           <p className="mt-2 text-sm text-gray-400">
-            선택된 레이드:{' '}
+            선택된 레이드 :{' '}
             <span className="text-white font-medium">
               {selectedRaidInfo.name}
             </span>{' '}

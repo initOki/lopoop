@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
+
 const API_BASE = 'https://developer-lostark.game.onstove.com'
 
 export type CharacterSummary = {
@@ -14,10 +16,6 @@ export type CharacterProfile = {
   ServerName: string
   CharacterLevel: number
   ItemAvgLevel: string
-  Stats?: Array<{
-    Type: string
-    Value: string
-  }>
   CombatPower?: number
 }
 
@@ -25,9 +23,6 @@ export async function fetchCharacterSiblings(
   characterName: string,
 ): Promise<CharacterSummary[]> {
   const apiKey = import.meta.env.VITE_LOA_API_KEY
-
-  console.log('API Key:', apiKey)
-  console.log('API Key 길이:', apiKey.length)
 
   const res = await fetch(
     `${API_BASE}/characters/${encodeURIComponent(characterName)}/siblings`,
@@ -38,8 +33,6 @@ export async function fetchCharacterSiblings(
       },
     },
   )
-
-  console.log('Status:', res.status)
 
   if (!res.ok) {
     const errorText = await res.text()
@@ -77,4 +70,27 @@ export async function fetchCharacterProfile(
     console.error(`프로필 조회 오류: ${characterName}`, error)
     return null
   }
+}
+
+// React Query 훅들
+export function useCharacterSiblings(characterName: string) {
+  return useQuery({
+    queryKey: ['character-siblings', characterName],
+    queryFn: () => fetchCharacterSiblings(characterName),
+    enabled: !!characterName && characterName.length > 0,
+    staleTime: 5 * 60 * 1000, // 5분
+    gcTime: 10 * 60 * 1000, // 10분
+    retry: 2,
+  })
+}
+
+export function useCharacterProfile(characterName: string) {
+  return useQuery({
+    queryKey: ['character-profile', characterName],
+    queryFn: () => fetchCharacterProfile(characterName),
+    enabled: !!characterName && characterName.length > 0,
+    staleTime: 5 * 60 * 1000, // 5분
+    gcTime: 10 * 60 * 1000, // 10분
+    retry: 2,
+  })
 }
