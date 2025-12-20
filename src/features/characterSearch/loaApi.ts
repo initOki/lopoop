@@ -16,7 +16,7 @@ export type CharacterProfile = {
   ServerName: string
   CharacterLevel: number
   ItemAvgLevel: string
-  CombatPower?: number
+  CombatPower?: string
 }
 
 export async function fetchCharacterSiblings(

@@ -51,11 +51,11 @@ export function formatCharacterForSelect(
   name: string,
   className: string,
   itemLevel: number,
-  stats?: number,
+  combatPower?: string,
 ): string {
   const itemLevelStr = itemLevel.toLocaleString()
-  if (stats) {
-    return `${name} / ${className} (${itemLevelStr} / ${stats.toLocaleString()})`
+  if (combatPower) {
+    return `${name} / ${className} (${itemLevelStr} / ${combatPower})`
   }
   return `${name} / ${className} (${itemLevelStr})`
 }

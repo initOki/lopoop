@@ -20,7 +20,7 @@ import { raidList } from '@/lib/raid-list'
 import RaidSetup from '@/features/raidSetup/RaidSetup'
 import type { ExpeditionCharacter } from '@/types/loa'
 import type { Database } from '@/types/database'
-import { getClassRole, formatCharacterForTable } from '@/utils/classUtils'
+import { getClassRole } from '@/utils/classUtils'
 import AccountSearch from '@/features/characterSearch/AccountSearch'
 import {
   serializeRaidSetupState,
@@ -40,6 +40,7 @@ type RaidSchedule = {
   id: number
   raidName: string
   slots: (string | null)[]
+  combatPowers: (number | null)[]
   isCompleted: boolean
   createdAt: Date
   averageStats?: number
@@ -235,11 +236,42 @@ export default function RaidSchedulePage() {
 
   const rowToSchedule = (row: ScheduleRow): RaidSchedule => {
     const slots = [row.slot_1, row.slot_2, row.slot_3, row.slot_4]
+    const combatPowers = [
+      row.slot_1_combat_power,
+      row.slot_2_combat_power,
+      row.slot_3_combat_power,
+      row.slot_4_combat_power,
+    ]
 
-    // 평균 전투력 계산
-    const statsValues = slots
-      .map((slot) => parseSlotData(slot)?.stats)
-      .filter((stats): stats is number => stats !== undefined)
+    // 평균 전투력 계산 - 새로운 컬럼 우선 사용
+    const statsValues = combatPowers.filter(
+      (power): power is number => power !== null && power !== undefined,
+    )
+
+    // 새로운 컬럼에 데이터가 없으면 기존 방식으로 파싱 (하위 호환성)
+    if (statsValues.length === 0) {
+      const legacyStatsValues = slots
+        .map((slot) => parseSlotData(slot)?.stats)
+        .filter((stats): stats is number => stats !== undefined)
+
+      const averageStats =
+        legacyStatsValues.length > 0
+          ? Math.round(
+              legacyStatsValues.reduce((sum, stats) => sum + stats, 0) /
+                legacyStatsValues.length,
+            )
+          : undefined
+
+      return {
+        id: row.id,
+        raidName: row.raid_name || '',
+        slots,
+        combatPowers,
+        isCompleted: row.is_completed || false,
+        createdAt: new Date(row.created_at),
+        averageStats,
+      }
+    }
 
     const averageStats =
       statsValues.length > 0
@@ -251,9 +283,10 @@ export default function RaidSchedulePage() {
 
     return {
       id: row.id,
-      raidName: row.raid_name,
+      raidName: row.raid_name || '',
       slots,
-      isCompleted: row.is_completed,
+      combatPowers,
+      isCompleted: row.is_completed || false,
       createdAt: new Date(row.created_at),
       averageStats,
     }
@@ -340,39 +373,42 @@ export default function RaidSchedulePage() {
     }
 
     try {
-      const { error } = await supabase.from('schedules').insert({
+      const insertData = {
         raid_name: selectedRaid,
         slot_1: selectedSlots[0]
-          ? formatCharacterForTable(
-              selectedSlots[0].CharacterName,
-              selectedSlots[0].CharacterClassName,
-              selectedSlots[0].CombatPower,
-            )
+          ? `${selectedSlots[0].CharacterName} / ${selectedSlots[0].CharacterClassName}`
+          : null,
+        slot_1_combat_power: selectedSlots[0]?.CombatPower
+          ? parseInt(selectedSlots[0].CombatPower.replace(/,/g, '')) || null
           : null,
         slot_2: selectedSlots[1]
-          ? formatCharacterForTable(
-              selectedSlots[1].CharacterName,
-              selectedSlots[1].CharacterClassName,
-              selectedSlots[1].CombatPower,
-            )
+          ? `${selectedSlots[1].CharacterName} / ${selectedSlots[1].CharacterClassName}`
+          : null,
+        slot_2_combat_power: selectedSlots[1]?.CombatPower
+          ? parseInt(selectedSlots[1].CombatPower.replace(/,/g, '')) || null
           : null,
         slot_3: selectedSlots[2]
-          ? formatCharacterForTable(
-              selectedSlots[2].CharacterName,
-              selectedSlots[2].CharacterClassName,
-              selectedSlots[2].CombatPower,
-            )
+          ? `${selectedSlots[2].CharacterName} / ${selectedSlots[2].CharacterClassName}`
+          : null,
+        slot_3_combat_power: selectedSlots[2]?.CombatPower
+          ? parseInt(selectedSlots[2].CombatPower.replace(/,/g, '')) || null
           : null,
         slot_4: selectedSlots[3]
-          ? formatCharacterForTable(
-              selectedSlots[3].CharacterName,
-              selectedSlots[3].CharacterClassName,
-              selectedSlots[3].CombatPower,
-            )
+          ? `${selectedSlots[3].CharacterName} / ${selectedSlots[3].CharacterClassName}`
           : null,
-      })
+        slot_4_combat_power: selectedSlots[3]?.CombatPower
+          ? parseInt(selectedSlots[3].CombatPower.replace(/,/g, '')) || null
+          : null,
+      }
 
-      if (error) throw error
+      console.log('Inserting schedule data:', insertData)
+
+      const { error } = await supabase.from('schedules').insert(insertData)
+
+      if (error) {
+        console.error('Supabase error details:', error)
+        throw error
+      }
 
       toast.success('레이드 스케줄이 추가되었습니다.')
       setSelectedRaid('')
@@ -496,14 +532,20 @@ export default function RaidSchedulePage() {
         | 'slot_2'
         | 'slot_3'
         | 'slot_4'
+      const combatPowerKey = `slot_${slotIndex + 1}_combat_power` as
+        | 'slot_1_combat_power'
+        | 'slot_2_combat_power'
+        | 'slot_3_combat_power'
+        | 'slot_4_combat_power'
+
       const { error } = await supabase
         .from('schedules')
         .update({
-          [slotKey]: formatCharacterForTable(
-            selectedEditCharacter.CharacterName,
-            selectedEditCharacter.CharacterClassName,
-            selectedEditCharacter.CombatPower,
-          ),
+          [slotKey]: `${selectedEditCharacter.CharacterName} / ${selectedEditCharacter.CharacterClassName}`,
+          [combatPowerKey]: selectedEditCharacter.CombatPower
+            ? parseInt(selectedEditCharacter.CombatPower.replace(/,/g, '')) ||
+              null
+            : null,
         })
         .eq('id', scheduleId)
 
@@ -527,9 +569,18 @@ export default function RaidSchedulePage() {
         | 'slot_2'
         | 'slot_3'
         | 'slot_4'
+      const combatPowerKey = `slot_${slotIndex + 1}_combat_power` as
+        | 'slot_1_combat_power'
+        | 'slot_2_combat_power'
+        | 'slot_3_combat_power'
+        | 'slot_4_combat_power'
+
       const { error } = await supabase
         .from('schedules')
-        .update({ [slotKey]: null })
+        .update({
+          [slotKey]: null,
+          [combatPowerKey]: null,
+        })
         .eq('id', scheduleId)
 
       if (error) throw error
@@ -561,14 +612,18 @@ export default function RaidSchedulePage() {
   // 파티 평균 전투력 계산
   const calculateAverageStats = () => {
     const slotsWithStats = selectedSlots.filter(
-      (slot) => slot !== null && slot.CombatPower !== undefined,
+      (slot) =>
+        slot !== null &&
+        slot.CombatPower !== undefined &&
+        slot.CombatPower !== '',
     )
     if (slotsWithStats.length === 0) return null
 
-    const totalStats = slotsWithStats.reduce(
-      (sum, slot) => sum + (slot!.CombatPower || 0),
-      0,
-    )
+    const totalStats = slotsWithStats.reduce((sum, slot) => {
+      const combatPower = parseInt(slot!.CombatPower!.replace(/,/g, '')) || 0
+      return sum + combatPower
+    }, 0)
+
     return Math.round(totalStats / slotsWithStats.length)
   }
 
@@ -663,10 +718,12 @@ export default function RaidSchedulePage() {
     scheduleId,
     slotIndex,
     slotText,
+    combatPower,
   }: {
     scheduleId: number
     slotIndex: number
     slotText: string | null
+    combatPower?: number | null
   }) => {
     const slotData = parseSlotData(slotText)
 
@@ -731,10 +788,8 @@ export default function RaidSchedulePage() {
                       >
                         {c.CharacterName} / {c.CharacterClassName} (
                         {c.ItemLevel.toLocaleString()}
-                        {c.CombatPower
-                          ? ` / ${c.CombatPower.toLocaleString()}`
-                          : ''}
-                        ){isDisabled ? ' - 3회 등록됨' : ''}
+                        {c.CombatPower ? ` / ${c.CombatPower}` : ''})
+                        {isDisabled ? ' - 3회 등록됨' : ''}
                       </SelectItem>
                     )
                   })}
@@ -781,6 +836,9 @@ export default function RaidSchedulePage() {
     const role = slotData.className ? getClassRole(slotData.className) : null
     const Icon = role === 'support' ? Heart : Swords
 
+    // 전투력은 새로운 컬럼 우선, 없으면 기존 파싱된 데이터 사용
+    const displayCombatPower = combatPower ?? slotData.stats
+
     return (
       <>
         <div className="flex items-center justify-between gap-2">
@@ -798,9 +856,9 @@ export default function RaidSchedulePage() {
                 {slotData.name} / {slotData.className || '미상'}
               </span>
             </div>
-            {slotData.stats && (
+            {displayCombatPower && (
               <div className="text-xs text-blue-400 ml-6">
-                전투력: {slotData.stats.toLocaleString()}
+                전투력: {displayCombatPower.toLocaleString()}
               </div>
             )}
           </div>
@@ -933,7 +991,7 @@ export default function RaidSchedulePage() {
                         </div>
                         {slot.CombatPower && (
                           <div className="text-xs text-blue-400">
-                            전투력: {slot.CombatPower.toLocaleString()}
+                            전투력: {slot.CombatPower}
                           </div>
                         )}
                       </>
@@ -1158,6 +1216,7 @@ export default function RaidSchedulePage() {
                             scheduleId={schedule.id}
                             slotIndex={idx}
                             slotText={slot}
+                            combatPower={schedule.combatPowers[idx]}
                           />
                         </div>
                       </td>
