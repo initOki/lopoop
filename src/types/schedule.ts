@@ -1,5 +1,4 @@
 import type { Database } from './database'
-import type { ExpeditionCharacter } from './loa'
 
 export type ScheduleRow = Database['public']['Tables']['schedules']['Row']
 
