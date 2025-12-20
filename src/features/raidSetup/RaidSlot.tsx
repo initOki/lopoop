@@ -27,8 +27,9 @@ export default function RaidSlot({
   // 유틸리티 함수를 사용하여 캐릭터 필터링 및 정렬
   const filteredAndSortedCharacters = filterAndSortCharacters(
     characters || [], // characters가 undefined일 경우 빈 배열로 처리
-    minItemLevel,
   )
+
+  console.log(filteredAndSortedCharacters)
 
   return (
     <div className="space-y-2">
@@ -70,32 +71,49 @@ export default function RaidSlot({
                 : '사용 가능한 캐릭터가 없습니다'}
             </SelectItem>
           ) : (
-            filteredAndSortedCharacters.map((c) => {
-              const usageCount = getCharacterUsageCount
-                ? getCharacterUsageCount(c.CharacterName)
-                : 0
-              const isDisabled = usageCount >= 3
-              return (
+            <>
+              {filteredAndSortedCharacters.map((c) => {
+                const usageCount = getCharacterUsageCount
+                  ? getCharacterUsageCount(c.CharacterName)
+                  : 0
+                const isDisabled = usageCount >= 3
+                return (
+                  <SelectItem
+                    key={c.CharacterName}
+                    value={c.CharacterName}
+                    disabled={isDisabled}
+                    className={
+                      isDisabled
+                        ? 'text-gray-500 data-[disabled]:opacity-50'
+                        : 'text-white'
+                    }
+                  >
+                    {formatCharacterForSelect(
+                      c.CharacterName,
+                      c.CharacterClassName,
+                      c.ItemLevel ?? 0, // 아이템 레벨 데이터 누락 시 0으로 처리
+                      c.CombatPower, // 전투력
+                    )}
+                    {isDisabled ? ' - 3회 등록됨' : ''}
+                  </SelectItem>
+                )
+              })}
+              {/* 모든 캐릭터가 비활성화된 경우를 위한 추가 처리 */}
+              {filteredAndSortedCharacters.every((c) => {
+                const usageCount = getCharacterUsageCount
+                  ? getCharacterUsageCount(c.CharacterName)
+                  : 0
+                return usageCount >= 3
+              }) && (
                 <SelectItem
-                  key={c.CharacterName}
-                  value={c.CharacterName}
-                  disabled={isDisabled}
-                  className={
-                    isDisabled
-                      ? 'text-gray-500 data-[disabled]:opacity-50'
-                      : 'text-white'
-                  }
+                  value="__all_disabled__"
+                  disabled
+                  className="text-gray-500"
                 >
-                  {formatCharacterForSelect(
-                    c.CharacterName,
-                    c.CharacterClassName,
-                    c.ItemLevel ?? 0, // 아이템 레벨 데이터 누락 시 0으로 처리
-                    c.CombatPower, // 전투력
-                  )}
-                  {isDisabled ? ' - 3회 등록됨' : ''}
+                  모든 캐릭터가 3회 등록되어 사용할 수 없습니다
                 </SelectItem>
-              )
-            })
+              )}
+            </>
           )}
         </SelectContent>
       </Select>

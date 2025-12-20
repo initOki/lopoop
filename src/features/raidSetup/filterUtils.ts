@@ -3,12 +3,12 @@ import { toast } from 'sonner'
 
 /**
  * 캐릭터 필터링 및 정렬 함수
- * 최소 아이템 레벨에 따라 캐릭터를 필터링하고 아이템 레벨 내림차순으로 정렬
+ * 유효한 캐릭터만 필터링하고 아이템 레벨 내림차순으로 정렬 (최소 아이템 레벨 필터링 제거)
  */
 export function filterAndSortCharacters(
   characters: ExpeditionCharacter[],
-  minItemLevel?: number,
 ): ExpeditionCharacter[] {
+  console.log(characters)
   // 입력 검증
   if (!Array.isArray(characters)) {
     console.warn(
@@ -18,50 +18,23 @@ export function filterAndSortCharacters(
     return []
   }
 
-  // 1단계: 지정된 경우 최소 아이템 레벨로 필터링
-  const filtered =
-    minItemLevel !== undefined
-      ? characters.filter((c) => {
-          // 캐릭터 객체 유효성 검사
-          if (!c || typeof c !== 'object') {
-            console.warn(
-              'filterAndSortCharacters: 유효하지 않은 캐릭터 객체:',
-              c,
-            )
-            return false
-          }
+  // 1단계: 유효한 캐릭터만 필터링 (아이템 레벨 조건 제거)
+  const filtered = characters.filter((c) => {
+    // 캐릭터 객체 유효성 검사
+    if (!c || typeof c !== 'object') {
+      console.warn('filterAndSortCharacters: 유효하지 않은 캐릭터 객체:', c)
+      return false
+    }
 
-          // 아이템 레벨 데이터 누락 시 0으로 처리
-          const itemLevel = c.ItemLevel ?? 0
+    // 아이템 레벨 데이터 누락 경고
+    if (c.ItemLevel === undefined || c.ItemLevel === null) {
+      console.warn(
+        `캐릭터 "${c.CharacterName || '알 수 없음'}"의 아이템 레벨 데이터가 누락되어 0으로 처리됩니다.`,
+      )
+    }
 
-          // 아이템 레벨 데이터 누락 경고
-          if (c.ItemLevel === undefined || c.ItemLevel === null) {
-            console.warn(
-              `캐릭터 "${c.CharacterName || '알 수 없음'}"의 아이템 레벨 데이터가 누락되어 0으로 처리됩니다.`,
-            )
-          }
-
-          return itemLevel >= minItemLevel
-        })
-      : characters.filter((c) => {
-          // 레이드 선택이 없어도 유효하지 않은 캐릭터는 제외
-          if (!c || typeof c !== 'object') {
-            console.warn(
-              'filterAndSortCharacters: 유효하지 않은 캐릭터 객체:',
-              c,
-            )
-            return false
-          }
-
-          // 아이템 레벨 데이터 누락 경고
-          if (c.ItemLevel === undefined || c.ItemLevel === null) {
-            console.warn(
-              `캐릭터 "${c.CharacterName || '알 수 없음'}"의 아이템 레벨 데이터가 누락되어 0으로 처리됩니다.`,
-            )
-          }
-
-          return true
-        })
+    return true
+  })
 
   // 2단계: 아이템 레벨 내림차순으로 정렬
   return [...filtered].sort((a, b) => {
