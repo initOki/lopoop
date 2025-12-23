@@ -150,8 +150,10 @@ export default function GroupDebtPage() {
 
         if (error) throw error
 
-        // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
         toast.success(`${debtItems.length}개의 빚이 추가되었습니다.`)
+
+        // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
+        setTimeout(() => fetchDebts(), 1000)
 
         setFormData({
           debtor: '',
@@ -187,8 +189,10 @@ export default function GroupDebtPage() {
 
       if (error) throw error
 
-      // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
       toast.success('빚이 수정되었습니다.')
+
+      // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
+      setTimeout(() => fetchDebts(), 1000)
 
       setFormData({
         debtor: '',
@@ -267,8 +271,10 @@ export default function GroupDebtPage() {
 
       if (error) throw error
 
-      // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
       toast.success('빚이 삭제되었습니다.')
+
+      // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
+      setTimeout(() => fetchDebts(), 1000)
     } catch (error) {
       console.error('Error deleting debt:', error)
       toast.error('빚을 삭제하는데 실패했습니다.')
@@ -287,10 +293,12 @@ export default function GroupDebtPage() {
 
       if (error) throw error
 
-      // 실시간 구독이 자동으로 UI를 업데이트하므로 수동 setDebts 제거
       toast.success(
         debt.isPaid ? '미납으로 변경되었습니다.' : '갚음으로 표시되었습니다.',
       )
+
+      // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
+      setTimeout(() => fetchDebts(), 1000)
     } catch (error) {
       console.error('Error updating debt:', error)
       toast.error('빚 상태를 변경하는데 실패했습니다.')

@@ -38,6 +38,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [editingSchedule, setEditingSchedule] = useState<PersonalSchedule | null>(null)
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -86,8 +87,11 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
             })
           } else if (payload.eventType === 'UPDATE') {
             const updatedRow = payload.new as PersonalScheduleRow
-            setSchedules((prev) =>
-              prev.map((schedule) =>
+            setSchedules((prev) => {
+              const exists = prev.some(schedule => schedule.id === updatedRow.id)
+              if (!exists) return prev // 존재하지 않는 항목은 업데이트하지 않음
+              
+              return prev.map((schedule) =>
                 schedule.id === updatedRow.id
                   ? {
                       id: updatedRow.id,
@@ -100,11 +104,16 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                       created_at: updatedRow.created_at,
                     }
                   : schedule,
-              ),
-            )
+              )
+            })
           } else if (payload.eventType === 'DELETE') {
             const deletedRow = payload.old as PersonalScheduleRow
-            setSchedules((prev) => prev.filter((schedule) => schedule.id !== deletedRow.id))
+            setSchedules((prev) => {
+              const exists = prev.some(schedule => schedule.id === deletedRow.id)
+              if (!exists) return prev // 이미 삭제된 항목은 처리하지 않음
+              
+              return prev.filter((schedule) => schedule.id !== deletedRow.id)
+            })
           }
         },
       )
@@ -112,9 +121,14 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
         console.log('Personal Schedule subscription status:', status)
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to personal schedules realtime updates')
+          setIsRealtimeConnected(true)
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to personal schedules realtime updates')
+          setIsRealtimeConnected(false)
           toast.error('실시간 업데이트 연결에 실패했습니다.')
+        } else if (status === 'CLOSED') {
+          setIsRealtimeConnected(false)
+          console.warn('Personal schedules realtime connection closed')
         }
       })
 
@@ -183,8 +197,10 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
         toast.success('개인 스케줄이 추가되었습니다.')
 
-        // 실시간 구독이 작동하지 않을 경우를 대비해 수동으로 새로고침
-        await fetchSchedules()
+        // 실시간 연결이 끊어진 경우 백업 새로고침
+        if (!isRealtimeConnected) {
+          setTimeout(() => fetchSchedules(), 1000)
+        }
 
         resetForm()
         setIsFormOpen(false)
@@ -220,8 +236,10 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
       toast.success('개인 스케줄이 수정되었습니다.')
 
-      // 실시간 구독이 작동하지 않을 경우를 대비해 수동으로 새로고침
-      await fetchSchedules()
+      // 실시간 연결이 끊어진 경우 백업 새로고침
+      if (!isRealtimeConnected) {
+        setTimeout(() => fetchSchedules(), 1000)
+      }
 
       resetForm()
       setIsFormOpen(false)
@@ -273,10 +291,16 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
       if (error) throw error
 
+      // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
+      setSchedules((prev) => prev.filter((schedule) => schedule.id !== id))
+
       toast.success('개인 스케줄이 삭제되었습니다.')
     } catch (error) {
       console.error('Error deleting personal schedule:', error)
       toast.error('개인 스케줄을 삭제하는데 실패했습니다.')
+      
+      // 삭제 실패 시 데이터 다시 불러오기
+      fetchSchedules()
     }
   }
 
@@ -284,10 +308,19 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     const schedule = schedules.find((s) => s.id === id)
     if (!schedule) return
 
+    const newCompletedState = !schedule.is_completed
+
     try {
+      // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
+      setSchedules((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, is_completed: newCompletedState } : s
+        )
+      )
+
       const { error } = await supabase
         .from('personal_schedules')
-        .update({ is_completed: !schedule.is_completed })
+        .update({ is_completed: newCompletedState })
         .eq('id', id)
 
       if (error) throw error
@@ -298,6 +331,13 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     } catch (error) {
       console.error('Error updating personal schedule:', error)
       toast.error('개인 스케줄 상태를 변경하는데 실패했습니다.')
+      
+      // 업데이트 실패 시 원래 상태로 되돌리기
+      setSchedules((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, is_completed: schedule.is_completed } : s
+        )
+      )
     }
   }
 
@@ -318,6 +358,9 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
           <div className="flex items-center gap-3">
             <User className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold text-foreground">개인 스케줄</h2>
+            {/* 실시간 연결 상태 인디케이터 */}
+            <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+                 title={isRealtimeConnected ? '실시간 연결됨' : '실시간 연결 끊김'} />
           </div>
           <button
             onClick={() => setIsFormOpen(true)}

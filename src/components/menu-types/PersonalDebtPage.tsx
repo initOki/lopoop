@@ -34,6 +34,7 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
   const [formData, setFormData] = useState({
     debtor: '',
     creditor: '',
@@ -79,8 +80,11 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
             })
           } else if (payload.eventType === 'UPDATE') {
             const updatedRow = payload.new as PersonalDebtRow
-            setDebts((prev) =>
-              prev.map((debt) =>
+            setDebts((prev) => {
+              const exists = prev.some(debt => debt.id === updatedRow.id)
+              if (!exists) return prev // 존재하지 않는 항목은 업데이트하지 않음
+              
+              return prev.map((debt) =>
                 debt.id === updatedRow.id
                   ? {
                       id: updatedRow.id,
@@ -93,11 +97,16 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
                       isPaid: updatedRow.is_paid,
                     }
                   : debt,
-              ),
-            )
+              )
+            })
           } else if (payload.eventType === 'DELETE') {
             const deletedRow = payload.old as PersonalDebtRow
-            setDebts((prev) => prev.filter((debt) => debt.id !== deletedRow.id))
+            setDebts((prev) => {
+              const exists = prev.some(debt => debt.id === deletedRow.id)
+              if (!exists) return prev // 이미 삭제된 항목은 처리하지 않음
+              
+              return prev.filter((debt) => debt.id !== deletedRow.id)
+            })
           }
         },
       )
@@ -105,9 +114,14 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
         console.log('Personal Debt subscription status:', status)
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to personal debts realtime updates')
+          setIsRealtimeConnected(true)
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to personal debts realtime updates')
+          setIsRealtimeConnected(false)
           toast.error('실시간 업데이트 연결에 실패했습니다.')
+        } else if (status === 'CLOSED') {
+          setIsRealtimeConnected(false)
+          console.warn('Personal debts realtime connection closed')
         }
       })
 
@@ -170,8 +184,10 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
 
         toast.success(`${debtItems.length}개의 개인 빚이 추가되었습니다.`)
 
-        // 실시간 구독이 작동하지 않을 경우를 대비해 수동으로 새로고침
-        await fetchDebts()
+        // 실시간 연결이 끊어진 경우 백업 새로고침
+        if (!isRealtimeConnected) {
+          setTimeout(() => fetchDebts(), 1000)
+        }
 
         setFormData({
           debtor: '',
@@ -208,8 +224,10 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
 
       toast.success('개인 빚이 수정되었습니다.')
 
-      // 실시간 구독이 작동하지 않을 경우를 대비해 수동으로 새로고침
-      await fetchDebts()
+      // 실시간 연결이 끊어진 경우 백업 새로고침
+      if (!isRealtimeConnected) {
+        setTimeout(() => fetchDebts(), 1000)
+      }
 
       setFormData({
         debtor: '',
@@ -284,6 +302,9 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
 
   const handleDelete = async (id: string) => {
     try {
+      // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
+      setDebts((prev) => prev.filter((debt) => debt.id !== id))
+
       const { error } = await supabase
         .from('personal_debts')
         .delete()
@@ -295,6 +316,9 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
     } catch (error) {
       console.error('Error deleting personal debt:', error)
       toast.error('개인 빚을 삭제하는데 실패했습니다.')
+      
+      // 삭제 실패 시 데이터 다시 불러오기
+      fetchDebts()
     }
   }
 
@@ -302,10 +326,19 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
     const debt = debts.find((d) => d.id === id)
     if (!debt) return
 
+    const newPaidState = !debt.isPaid
+
     try {
+      // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
+      setDebts((prev) =>
+        prev.map((d) =>
+          d.id === id ? { ...d, isPaid: newPaidState } : d
+        )
+      )
+
       const { error } = await supabase
         .from('personal_debts')
-        .update({ is_paid: !debt.isPaid })
+        .update({ is_paid: newPaidState })
         .eq('id', id)
 
       if (error) throw error
@@ -316,6 +349,13 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
     } catch (error) {
       console.error('Error updating personal debt:', error)
       toast.error('개인 빚 상태를 변경하는데 실패했습니다.')
+      
+      // 업데이트 실패 시 원래 상태로 되돌리기
+      setDebts((prev) =>
+        prev.map((d) =>
+          d.id === id ? { ...d, isPaid: debt.isPaid } : d
+        )
+      )
     }
   }
 
@@ -326,6 +366,9 @@ export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
           <div className="flex items-center gap-3">
             <User className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold text-foreground">개인 빚 관리</h2>
+            {/* 실시간 연결 상태 인디케이터 */}
+            <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+                 title={isRealtimeConnected ? '실시간 연결됨' : '실시간 연결 끊김'} />
           </div>
           <button
             onClick={() => setIsFormOpen(true)}

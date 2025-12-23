@@ -24,13 +24,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
       label: '스케줄',
       icon: Calendar,
       description: '개인 스케줄을 관리합니다',
-    },
-    {
-      id: 'settings' as PersonalTab,
-      label: '설정',
-      icon: Settings,
-      description: '개인 설정을 관리합니다',
-    },
+    }
   ]
 
   const renderTabContent = () => {
