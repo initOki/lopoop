@@ -19,7 +19,7 @@ export type Database = {
           id: string
           user_id: string
           name: string
-          type: 'group' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          type: 'group' | 'personal' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
           config: Json
           menu_order: number
           created_at: string
@@ -29,7 +29,7 @@ export type Database = {
           id?: string
           user_id: string
           name: string
-          type: 'group' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          type: 'group' | 'personal' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
           config?: Json
           menu_order?: number
           created_at?: string
@@ -39,7 +39,7 @@ export type Database = {
           id?: string
           user_id?: string
           name?: string
-          type?: 'group' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          type?: 'group' | 'personal' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
           config?: Json
           menu_order?: number
           created_at?: string
@@ -216,6 +216,87 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
+      }
+      personal_debts: {
+        Row: {
+          id: string
+          user_id: string
+          debtor: string
+          creditor: string
+          amount: number | null
+          item: string | null
+          description: string | null
+          is_paid: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          debtor: string
+          creditor: string
+          amount?: number | null
+          item?: string | null
+          description?: string | null
+          is_paid?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          debtor?: string
+          creditor?: string
+          amount?: number | null
+          item?: string | null
+          description?: string | null
+          is_paid?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      personal_schedules: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          start_time: string
+          end_time: string
+          type: 'raid' | 'meeting' | 'event' | 'personal'
+          participants: string[]
+          is_completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          start_time: string
+          end_time: string
+          type?: 'raid' | 'meeting' | 'event' | 'personal'
+          participants?: string[]
+          is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          start_time?: string
+          end_time?: string
+          type?: 'raid' | 'meeting' | 'event' | 'personal'
+          participants?: string[]
+          is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       schedules: {
         Row: {

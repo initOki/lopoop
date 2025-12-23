@@ -9,7 +9,11 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier",
-    "check": "prettier --write . && eslint --fix"
+    "check": "prettier --write . && eslint --fix",
+    "migrate:personal": "ts-node scripts/apply-personal-migration.ts",
+    "migrate:archive": "ts-node scripts/apply-archive-migration.ts",
+    "migrate:custom": "ts-node scripts/apply-migration.ts",
+    "migrate:menu-type": "ts-node scripts/apply-menu-type-migration.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",

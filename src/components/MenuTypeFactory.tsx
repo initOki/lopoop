@@ -1,9 +1,10 @@
-import { Users, BarChart3, ExternalLink, FileText, FolderOpen } from 'lucide-react'
+import { Users, BarChart3, ExternalLink, FileText, FolderOpen, User } from 'lucide-react'
 import type { CustomMenu, MenuComponentProps, MenuTypeConfig } from '../types/custom-menu'
 import { MenuType } from '../types/custom-menu'
 
 // Import menu type components
 import { GroupMenuComponent } from './menu-types/GroupMenuComponent'
+import { PersonalMenuComponent } from './menu-types/PersonalMenuComponent'
 import { DashboardMenuComponent } from './menu-types/DashboardMenuComponent'
 import { ExternalLinkMenuComponent } from './menu-types/ExternalLinkMenuComponent'
 import { CustomPageMenuComponent } from './menu-types/CustomPageMenuComponent'
@@ -26,6 +27,21 @@ const MENU_TYPE_CONFIGS: Record<MenuType, MenuTypeConfig> = {
     },
     icon: Users,
     features: ['멤버 관리', '공지사항', '그룹 스케줄링', '채팅']
+  },
+  
+  [MenuType.PERSONAL]: {
+    component: PersonalMenuComponent,
+    defaultConfig: {
+      description: '',
+      defaultTab: 'debt',
+      features: {
+        debtManagement: true,
+        scheduling: true,
+        settings: true
+      }
+    },
+    icon: User,
+    features: ['개인 빚 관리', '개인 스케줄링', '개인 설정']
   },
   
   [MenuType.DASHBOARD]: {

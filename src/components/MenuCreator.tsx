@@ -17,8 +17,8 @@ import { validateMenu, getUserMenuNames } from '../lib/custom-menu-utils'
 export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps) {
   const [formData, setFormData] = useState<MenuFormData>({
     name: '',
-    type: MenuType.GROUP,
-    config: DEFAULT_MENU_CONFIGS[MenuType.GROUP]
+    type: MenuType.PERSONAL,
+    config: DEFAULT_MENU_CONFIGS[MenuType.PERSONAL]
   })
   
   const [existingNames, setExistingNames] = useState<string[]>([])
@@ -116,13 +116,13 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
             </div>
           </div>
 
-          {/* 메뉴 타입 표시 (그룹 고정) */}
+          {/* 메뉴 타입 표시 (개인 고정) */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               메뉴 타입
             </label>
             <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg bg-muted">
-              <span className="text-lg">👥</span>
+              <span className="text-lg">�</span>
               <span className="text-foreground">개인 페이지</span>
             </div>
           </div>

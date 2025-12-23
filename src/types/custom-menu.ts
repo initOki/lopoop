@@ -3,6 +3,7 @@ import type { Tables, TablesInsert, TablesUpdate } from './database'
 // Menu types enum
 export enum MenuType {
   GROUP = 'group',
+  PERSONAL = 'personal',
   DASHBOARD = 'dashboard',
   EXTERNAL_LINK = 'external_link',
   CUSTOM_PAGE = 'custom_page',
@@ -45,6 +46,16 @@ export interface CustomPageMenuConfig extends MenuConfig {
   content: string // HTML/Markdown content
   allowEdit: boolean
   template: 'blank' | 'document' | 'wiki'
+}
+
+export interface PersonalMenuConfig extends MenuConfig {
+  description?: string
+  defaultTab: 'debt' | 'schedule' | 'settings'
+  features: {
+    debtManagement: boolean
+    scheduling: boolean
+    settings: boolean
+  }
 }
 
 export interface ProjectMenuConfig extends MenuConfig {
@@ -181,6 +192,16 @@ export const DEFAULT_MENU_CONFIGS: Record<MenuType, MenuConfig> = {
       debtManagement: true
     }
   } as GroupMenuConfig,
+  
+  [MenuType.PERSONAL]: {
+    description: '',
+    defaultTab: 'debt',
+    features: {
+      debtManagement: true,
+      scheduling: true,
+      settings: true
+    }
+  } as PersonalMenuConfig,
   
   [MenuType.DASHBOARD]: {
     layout: 'grid',
