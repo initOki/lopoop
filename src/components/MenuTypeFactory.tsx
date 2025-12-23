@@ -1,14 +1,13 @@
-import { Users, BarChart3, ExternalLink, FileText, FolderOpen, User } from 'lucide-react'
-import type { CustomMenu, MenuComponentProps, MenuTypeConfig } from '../types/custom-menu'
+import { Users, FileText } from 'lucide-react'
+import type {
+  CustomMenu,
+  MenuComponentProps,
+  MenuTypeConfig,
+} from '../types/custom-menu'
 import { MenuType } from '../types/custom-menu'
 
 // Import menu type components
 import { GroupMenuComponent } from './menu-types/GroupMenuComponent'
-import { PersonalMenuComponent } from './menu-types/PersonalMenuComponent'
-import { DashboardMenuComponent } from './menu-types/DashboardMenuComponent'
-import { ExternalLinkMenuComponent } from './menu-types/ExternalLinkMenuComponent'
-import { CustomPageMenuComponent } from './menu-types/CustomPageMenuComponent'
-import { ProjectMenuComponent } from './menu-types/ProjectMenuComponent'
 
 // Menu type configuration registry
 const MENU_TYPE_CONFIGS: Record<MenuType, MenuTypeConfig> = {
@@ -22,74 +21,12 @@ const MENU_TYPE_CONFIGS: Record<MenuType, MenuTypeConfig> = {
         announcements: true,
         scheduling: true,
         fileSharing: false,
-        chat: true
-      }
+        chat: true,
+      },
     },
     icon: Users,
-    features: ['멤버 관리', '공지사항', '그룹 스케줄링', '채팅']
+    features: ['멤버 관리', '공지사항', '그룹 스케줄링', '채팅'],
   },
-  
-  [MenuType.PERSONAL]: {
-    component: PersonalMenuComponent,
-    defaultConfig: {
-      description: '',
-      defaultTab: 'debt',
-      features: {
-        debtManagement: true,
-        scheduling: true,
-        settings: true
-      }
-    },
-    icon: User,
-    features: ['개인 빚 관리', '개인 스케줄링', '개인 설정']
-  },
-  
-  [MenuType.DASHBOARD]: {
-    component: DashboardMenuComponent,
-    defaultConfig: {
-      layout: 'grid',
-      widgets: []
-    },
-    icon: BarChart3,
-    features: ['커스터마이징 위젯', '대시보드 레이아웃', '개인 추적 도구']
-  },
-  
-  [MenuType.EXTERNAL_LINK]: {
-    component: ExternalLinkMenuComponent,
-    defaultConfig: {
-      links: [],
-      layout: 'list'
-    },
-    icon: ExternalLink,
-    features: ['링크 관리', '빠른 접근', '카테고리 정리']
-  },
-  
-  [MenuType.CUSTOM_PAGE]: {
-    component: CustomPageMenuComponent,
-    defaultConfig: {
-      content: '',
-      allowEdit: true,
-      template: 'blank'
-    },
-    icon: FileText,
-    features: ['콘텐츠 에디터', '템플릿 시스템', '마크다운 지원']
-  },
-  
-  [MenuType.PROJECT]: {
-    component: ProjectMenuComponent,
-    defaultConfig: {
-      description: '',
-      status: 'active',
-      features: {
-        tasks: true,
-        timeline: false,
-        files: false,
-        discussions: true
-      }
-    },
-    icon: FolderOpen,
-    features: ['작업 관리', '타임라인', '파일 공유', '토론']
-  }
 }
 
 interface MenuTypeFactoryProps extends MenuComponentProps {
@@ -125,9 +62,7 @@ export function MenuTypeFactory({ menu, onUpdate }: MenuTypeFactoryProps) {
       <div className="bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center gap-3">
           <config.icon className="w-5 h-5 text-cyan-600" />
-          <h2 className="text-lg font-semibold text-white">
-            {menu.name}
-          </h2>
+          <h2 className="text-lg font-semibold text-white">{menu.name}</h2>
         </div>
         {/* <div className="flex flex-wrap gap-2">
           {config.features.map((feature, index) => (

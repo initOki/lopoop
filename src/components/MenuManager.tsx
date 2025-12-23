@@ -1,5 +1,12 @@
 import React, { useState } from 'react'
-import { Plus, Settings, Trash2, GripVertical, Shield, Wifi } from 'lucide-react'
+import {
+  Plus,
+  Settings,
+  Trash2,
+  GripVertical,
+  Shield,
+  Wifi,
+} from 'lucide-react'
 import { useCustomMenus } from '../hooks/useCustomMenus'
 import { MenuCreator } from './MenuCreator'
 import { MenuEditor } from './MenuEditor'
@@ -8,7 +15,11 @@ import { MenuPermissionManager } from './MenuPermissionManager'
 import { SecurityMonitor, SecurityStatusIndicator } from './SecurityMonitor'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
 import { MenuType } from '../types/custom-menu'
-import type { MenuManagerProps, CustomMenu, CustomMenuInsert } from '../types/custom-menu'
+import type {
+  MenuManagerProps,
+  CustomMenu,
+  CustomMenuInsert,
+} from '../types/custom-menu'
 
 /**
  * MenuManager 컴포넌트
@@ -16,73 +27,50 @@ import type { MenuManagerProps, CustomMenu, CustomMenuInsert } from '../types/cu
  * 요구사항: 7.1, 8.4
  */
 export function MenuManager({ userId }: MenuManagerProps) {
-  const { 
-    menus, 
-    loading, 
+  const {
+    menus,
+    loading,
     error,
     hasPendingActions,
     createMenu,
     updateMenu,
-    deleteMenu, 
+    deleteMenu,
     reorderMenus,
-    syncOfflineActions
+    syncOfflineActions,
   } = useCustomMenus(userId)
-  
+
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingMenu, setEditingMenu] = useState<CustomMenu | null>(null)
   const [deletingMenu, setDeletingMenu] = useState<CustomMenu | null>(null)
-  const [managingPermissions, setManagingPermissions] = useState<CustomMenu | null>(null)
+  const [managingPermissions, setManagingPermissions] =
+    useState<CustomMenu | null>(null)
   const [showSecurityMonitor, setShowSecurityMonitor] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
-
-  // 메뉴 타입별 아이콘 매핑
-  const getMenuTypeIcon = (type: MenuType) => {
-    switch (type) {
-      case MenuType.GROUP:
-        return '👥'
-      case MenuType.DASHBOARD:
-        return '📊'
-      case MenuType.EXTERNAL_LINK:
-        return '🔗'
-      case MenuType.CUSTOM_PAGE:
-        return '📄'
-      case MenuType.PROJECT:
-        return '📁'
-      default:
-        return '📋'
-    }
-  }
 
   // 메뉴 타입별 한국어 이름
   const getMenuTypeName = (type: MenuType) => {
     switch (type) {
       case MenuType.GROUP:
         return '그룹'
-      case MenuType.DASHBOARD:
-        return '대시보드'
-      case MenuType.EXTERNAL_LINK:
-        return '외부 링크'
-      case MenuType.CUSTOM_PAGE:
-        return '커스텀 페이지'
-      case MenuType.PROJECT:
-        return '프로젝트'
       default:
         return '메뉴'
     }
   }
 
   // 메뉴 생성 처리
-  const handleMenuCreate = async (menuData: Omit<CustomMenu, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleMenuCreate = async (
+    menuData: Omit<CustomMenu, 'id' | 'created_at' | 'updated_at'>,
+  ) => {
     try {
       const menuInsert: CustomMenuInsert = {
         name: menuData.name,
         type: menuData.type,
         config: menuData.config,
         user_id: userId,
-        menu_order: menus.length // 마지막 순서로 추가
+        menu_order: menus.length, // 마지막 순서로 추가
       }
-      
+
       await createMenu(menuInsert)
       setShowCreateForm(false)
     } catch (err) {
@@ -93,7 +81,7 @@ export function MenuManager({ userId }: MenuManagerProps) {
   // 메뉴 업데이트 처리
   const handleMenuUpdate = async (updates: Partial<CustomMenu>) => {
     if (!editingMenu) return
-    
+
     try {
       await updateMenu(editingMenu.id, updates)
       setEditingMenu(null)
@@ -110,7 +98,7 @@ export function MenuManager({ userId }: MenuManagerProps) {
   // 메뉴 삭제 실행
   const handleConfirmDelete = async () => {
     if (!deletingMenu) return
-    
+
     setIsDeleting(true)
     try {
       await deleteMenu(deletingMenu.id)
@@ -121,11 +109,6 @@ export function MenuManager({ userId }: MenuManagerProps) {
     } finally {
       setIsDeleting(false)
     }
-  }
-
-  // 권한 관리 열기
-  const handleManagePermissions = (menu: CustomMenu) => {
-    setManagingPermissions(menu)
   }
 
   // 메뉴 삭제 취소
@@ -148,15 +131,15 @@ export function MenuManager({ userId }: MenuManagerProps) {
 
   const handleDrop = async (e: React.DragEvent, targetMenuId: string) => {
     e.preventDefault()
-    
+
     if (!draggedItem || draggedItem === targetMenuId) {
       setDraggedItem(null)
       return
     }
 
-    const draggedIndex = menus.findIndex(menu => menu.id === draggedItem)
-    const targetIndex = menus.findIndex(menu => menu.id === targetMenuId)
-    
+    const draggedIndex = menus.findIndex((menu) => menu.id === draggedItem)
+    const targetIndex = menus.findIndex((menu) => menu.id === targetMenuId)
+
     if (draggedIndex === -1 || targetIndex === -1) {
       setDraggedItem(null)
       return
@@ -170,7 +153,7 @@ export function MenuManager({ userId }: MenuManagerProps) {
     // 순서 업데이트
     const menuOrders = newMenus.map((menu, index) => ({
       id: menu.id,
-      order: index
+      order: index,
     }))
 
     try {
@@ -204,13 +187,15 @@ export function MenuManager({ userId }: MenuManagerProps) {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-foreground">커스텀 메뉴 관리</h2>
-          
+          <h2 className="text-xl font-semibold text-foreground">
+            커스텀 메뉴 관리
+          </h2>
+
           {/* 네트워크 및 보안 상태 표시 */}
           <div className="flex items-center gap-2">
             <NetworkStatusIndicator showText={false} />
             <SecurityStatusIndicator userId={userId} />
-            
+
             {hasPendingActions && (
               <button
                 onClick={syncOfflineActions}
@@ -223,7 +208,7 @@ export function MenuManager({ userId }: MenuManagerProps) {
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSecurityMonitor(!showSecurityMonitor)}
@@ -232,13 +217,12 @@ export function MenuManager({ userId }: MenuManagerProps) {
           >
             <Shield className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={() => setShowCreateForm(true)}
             className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            새 메뉴 추가
+            <Plus className="w-4 h-4" />새 메뉴 추가
           </button>
         </div>
       </div>
@@ -251,7 +235,9 @@ export function MenuManager({ userId }: MenuManagerProps) {
       {/* 메뉴 목록 */}
       {menus.length === 0 ? (
         <div className="text-center py-12 bg-muted rounded-lg">
-          <div className="text-muted-foreground mb-4">생성된 커스텀 메뉴가 없습니다</div>
+          <div className="text-muted-foreground mb-4">
+            생성된 커스텀 메뉴가 없습니다
+          </div>
           <button
             onClick={() => setShowCreateForm(true)}
             className="text-primary hover:text-primary/80 font-medium"
@@ -275,21 +261,21 @@ export function MenuManager({ userId }: MenuManagerProps) {
             >
               {/* 드래그 핸들 */}
               <GripVertical className="w-4 h-4 text-muted-foreground mr-[20px]" />
-              
+
               {/* 메뉴 아이콘 */}
               {/* <div className="text-2xl">
                 {getMenuTypeIcon(menu.type as MenuType)}
               </div> */}
-              
+
               {/* 메뉴 정보 */}
               <div className="flex-1">
                 <div className="font-medium text-foreground">{menu.name}</div>
                 <div className="text-sm text-muted-foreground">
-                  {getMenuTypeName(menu.type as MenuType)} • 
-                  생성일: {new Date(menu.created_at).toLocaleDateString()}
+                  {getMenuTypeName(menu.type as MenuType)} • 생성일:{' '}
+                  {new Date(menu.created_at).toLocaleDateString()}
                 </div>
               </div>
-              
+
               {/* 액션 버튼 */}
               <div className="flex items-center gap-2">
                 {/* 권한 관리 버튼 (그룹 메뉴만) */}
@@ -302,7 +288,7 @@ export function MenuManager({ userId }: MenuManagerProps) {
                     <Shield className="w-4 h-4" />
                   </button>
                 )} */}
-                
+
                 <button
                   onClick={() => setEditingMenu(menu)}
                   className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"

@@ -14,11 +14,11 @@ interface MenuDeleteDialogProps {
  * 메뉴 삭제 확인 대화상자
  * 요구사항 6.1: 메뉴 세부사항과 결과를 보여주는 확인 대화상자 표시
  */
-export function MenuDeleteDialog({ 
-  menu, 
-  onConfirm, 
-  onCancel, 
-  isDeleting = false 
+export function MenuDeleteDialog({
+  menu,
+  onConfirm,
+  onCancel,
+  isDeleting = false,
 }: MenuDeleteDialogProps) {
   const [confirmText, setConfirmText] = useState('')
   const [showDetails, setShowDetails] = useState(false)
@@ -28,14 +28,6 @@ export function MenuDeleteDialog({
     switch (type as MenuType) {
       case MenuType.GROUP:
         return '그룹'
-      case MenuType.DASHBOARD:
-        return '대시보드'
-      case MenuType.EXTERNAL_LINK:
-        return '외부 링크'
-      case MenuType.CUSTOM_PAGE:
-        return '커스텀 페이지'
-      case MenuType.PROJECT:
-        return '프로젝트'
       default:
         return '메뉴'
     }
@@ -46,14 +38,6 @@ export function MenuDeleteDialog({
     switch (type as MenuType) {
       case MenuType.GROUP:
         return '👥'
-      case MenuType.DASHBOARD:
-        return '📊'
-      case MenuType.EXTERNAL_LINK:
-        return '🔗'
-      case MenuType.CUSTOM_PAGE:
-        return '📄'
-      case MenuType.PROJECT:
-        return '📁'
       default:
         return '📋'
     }
@@ -62,31 +46,15 @@ export function MenuDeleteDialog({
   // 삭제 영향 분석
   const getDeletionImpact = () => {
     const impacts = []
-    
+
     if (menu.type === MenuType.GROUP) {
       impacts.push('그룹 멤버들이 이 메뉴에 접근할 수 없게 됩니다')
       impacts.push('그룹 내 공지사항과 스케줄이 삭제됩니다')
     }
-    
-    if (menu.type === MenuType.DASHBOARD) {
-      impacts.push('설정된 모든 위젯과 레이아웃이 삭제됩니다')
-    }
-    
-    if (menu.type === MenuType.EXTERNAL_LINK) {
-      impacts.push('저장된 모든 링크가 삭제됩니다')
-    }
-    
-    if (menu.type === MenuType.CUSTOM_PAGE) {
-      impacts.push('작성된 모든 콘텐츠가 삭제됩니다')
-    }
-    
-    if (menu.type === MenuType.PROJECT) {
-      impacts.push('프로젝트 데이터와 설정이 삭제됩니다')
-    }
 
     impacts.push('네비게이션에서 메뉴 항목이 제거됩니다')
     impacts.push('30일 후 완전히 삭제되며, 그 전까지는 복구 가능합니다')
-    
+
     return impacts
   }
 
@@ -94,7 +62,7 @@ export function MenuDeleteDialog({
     if (confirmText !== menu.name) {
       return
     }
-    
+
     try {
       await onConfirm()
     } catch (error) {
@@ -113,7 +81,9 @@ export function MenuDeleteDialog({
             <div className="p-2 bg-red-100 rounded-lg">
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">메뉴 삭제 확인</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              메뉴 삭제 확인
+            </h2>
           </div>
           <button
             onClick={onCancel}
@@ -127,14 +97,12 @@ export function MenuDeleteDialog({
         {/* 메뉴 정보 */}
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl">
-              {getMenuTypeIcon(menu.type)}
-            </div>
+            <div className="text-2xl">{getMenuTypeIcon(menu.type)}</div>
             <div className="flex-1">
               <div className="font-medium text-gray-900">{menu.name}</div>
               <div className="text-sm text-gray-500">
-                {getMenuTypeName(menu.type)} • 
-                생성일: {new Date(menu.created_at).toLocaleDateString()}
+                {getMenuTypeName(menu.type)} • 생성일:{' '}
+                {new Date(menu.created_at).toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -157,7 +125,10 @@ export function MenuDeleteDialog({
           {/* 삭제 영향 목록 */}
           <div className="space-y-2">
             {getDeletionImpact().map((impact, index) => (
-              <div key={index} className="flex items-start gap-2 text-sm text-gray-600">
+              <div
+                key={index}
+                className="flex items-start gap-2 text-sm text-gray-600"
+              >
                 <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0" />
                 <div>{impact}</div>
               </div>
@@ -175,12 +146,25 @@ export function MenuDeleteDialog({
           {/* 세부 정보 */}
           {showDetails && (
             <div className="p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
-              <div><span className="font-medium">메뉴 ID:</span> {menu.id}</div>
-              <div><span className="font-medium">생성일:</span> {new Date(menu.created_at).toLocaleString()}</div>
-              <div><span className="font-medium">마지막 수정:</span> {new Date(menu.updated_at).toLocaleString()}</div>
-              <div><span className="font-medium">순서:</span> {menu.menu_order}</div>
+              <div>
+                <span className="font-medium">메뉴 ID:</span> {menu.id}
+              </div>
+              <div>
+                <span className="font-medium">생성일:</span>{' '}
+                {new Date(menu.created_at).toLocaleString()}
+              </div>
+              <div>
+                <span className="font-medium">마지막 수정:</span>{' '}
+                {new Date(menu.updated_at).toLocaleString()}
+              </div>
+              <div>
+                <span className="font-medium">순서:</span> {menu.menu_order}
+              </div>
               {menu.type === MenuType.GROUP && (
-                <div><span className="font-medium">그룹 타입:</span> 다른 사용자에게 영향을 줄 수 있음</div>
+                <div>
+                  <span className="font-medium">그룹 타입:</span> 다른
+                  사용자에게 영향을 줄 수 있음
+                </div>
               )}
             </div>
           )}
@@ -218,9 +202,10 @@ export function MenuDeleteDialog({
             disabled={!isConfirmValid || isDeleting}
             className={`
               flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
-              ${isConfirmValid && !isDeleting
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              ${
+                isConfirmValid && !isDeleting
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }
             `}
           >

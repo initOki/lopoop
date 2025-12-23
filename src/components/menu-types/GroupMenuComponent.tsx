@@ -1,23 +1,14 @@
 import { useState } from 'react'
 import { Calendar, Wallet } from 'lucide-react'
-import type { MenuComponentProps, GroupMenuConfig } from '../../types/custom-menu'
 import GroupSchedulePage from './GroupSchedulePage'
 import GroupDebtPage from './GroupDebtPage'
 
-export function GroupMenuComponent({ menu, onUpdate }: MenuComponentProps) {
+export function GroupMenuComponent() {
   const [activeTab, setActiveTab] = useState<'schedule' | 'debts'>('schedule')
-  
-  const config = menu.config as GroupMenuConfig
-
-  const handleConfigUpdate = (newConfig: Partial<GroupMenuConfig>) => {
-    onUpdate({
-      config: { ...config, ...newConfig }
-    })
-  }
 
   const tabs = [
     { id: 'schedule', label: '스케줄', icon: Calendar },
-    { id: 'debts', label: '빚 관리', icon: Wallet }
+    { id: 'debts', label: '빚 관리', icon: Wallet },
   ] as const
 
   return (

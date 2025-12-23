@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { RotateCcw, Trash2, Clock, AlertCircle } from 'lucide-react'
-import { 
-  getUserArchivedMenus, 
-  restoreArchivedMenu, 
+import {
+  getUserArchivedMenus,
+  restoreArchivedMenu,
   getTimeUntilExpiry,
-  isMenuRecoverable 
+  isMenuRecoverable,
 } from '../lib/menu-archive-utils'
 import { MenuType } from '../types/custom-menu'
 import type { ArchivedMenu } from '../lib/menu-archive-utils'
@@ -18,7 +18,10 @@ interface ArchivedMenuManagerProps {
  * 아카이브된 메뉴 관리 컴포넌트
  * 요구사항 6.3: 복구 기간 동안 메뉴 데이터 보관 및 복구 시스템
  */
-export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuManagerProps) {
+export function ArchivedMenuManager({
+  userId,
+  onMenuRestored,
+}: ArchivedMenuManagerProps) {
   const [archivedMenus, setArchivedMenus] = useState<ArchivedMenu[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,14 +32,6 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
     switch (type as MenuType) {
       case MenuType.GROUP:
         return '그룹'
-      case MenuType.DASHBOARD:
-        return '대시보드'
-      case MenuType.EXTERNAL_LINK:
-        return '외부 링크'
-      case MenuType.CUSTOM_PAGE:
-        return '커스텀 페이지'
-      case MenuType.PROJECT:
-        return '프로젝트'
       default:
         return '메뉴'
     }
@@ -47,14 +42,6 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
     switch (type as MenuType) {
       case MenuType.GROUP:
         return '👥'
-      case MenuType.DASHBOARD:
-        return '📊'
-      case MenuType.EXTERNAL_LINK:
-        return '🔗'
-      case MenuType.CUSTOM_PAGE:
-        return '📄'
-      case MenuType.PROJECT:
-        return '📁'
       default:
         return '📋'
     }
@@ -69,7 +56,11 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
       setArchivedMenus(menus)
     } catch (err) {
       console.error('Error loading archived menus:', err)
-      setError(err instanceof Error ? err.message : '아카이브된 메뉴를 불러오는데 실패했습니다')
+      setError(
+        err instanceof Error
+          ? err.message
+          : '아카이브된 메뉴를 불러오는데 실패했습니다',
+      )
     } finally {
       setLoading(false)
     }
@@ -98,11 +89,11 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
   // 남은 시간 포맷팅
   const formatTimeUntilExpiry = (archivedMenu: ArchivedMenu) => {
     const timeLeft = getTimeUntilExpiry(archivedMenu)
-    
+
     if (timeLeft.expired) {
       return '만료됨'
     }
-    
+
     if (timeLeft.days > 0) {
       return `${timeLeft.days}일 ${timeLeft.hours}시간`
     } else if (timeLeft.hours > 0) {
@@ -145,7 +136,9 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
     <div className="space-y-4">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">삭제된 메뉴 복구</h2>
+        <h2 className="text-xl font-semibold text-gray-900">
+          삭제된 메뉴 복구
+        </h2>
         <button
           onClick={loadArchivedMenus}
           className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -161,7 +154,7 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
           <div className="text-sm text-blue-700">
             <div className="font-medium mb-1">메뉴 복구 안내</div>
             <div>
-              삭제된 메뉴는 30일 동안 보관되며, 이 기간 내에 복구할 수 있습니다. 
+              삭제된 메뉴는 30일 동안 보관되며, 이 기간 내에 복구할 수 있습니다.
               복구된 메뉴는 이름 뒤에 "(복구됨)"이 추가됩니다.
             </div>
           </div>
@@ -189,9 +182,10 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
                 key={archivedMenu.id}
                 className={`
                   flex items-center gap-4 p-4 border rounded-lg
-                  ${isRecoverable 
-                    ? 'bg-white border-gray-200' 
-                    : 'bg-gray-50 border-gray-300 opacity-60'
+                  ${
+                    isRecoverable
+                      ? 'bg-white border-gray-200'
+                      : 'bg-gray-50 border-gray-300 opacity-60'
                   }
                 `}
               >
@@ -199,7 +193,7 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
                 <div className="text-2xl">
                   {getMenuTypeIcon(archivedMenu.type)}
                 </div>
-                
+
                 {/* 메뉴 정보 */}
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">
@@ -207,18 +201,22 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
                   </div>
                   <div className="text-sm text-gray-500 space-y-1">
                     <div>
-                      {getMenuTypeName(archivedMenu.type)} • 
-                      삭제일: {new Date(archivedMenu.deleted_at).toLocaleDateString()}
+                      {getMenuTypeName(archivedMenu.type)} • 삭제일:{' '}
+                      {new Date(archivedMenu.deleted_at).toLocaleDateString()}
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-3 h-3" />
-                      <span className={isRecoverable ? 'text-green-600' : 'text-red-600'}>
+                      <span
+                        className={
+                          isRecoverable ? 'text-green-600' : 'text-red-600'
+                        }
+                      >
                         복구 가능 기간: {timeLeft}
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* 복구 버튼 */}
                 <div>
                   {isRecoverable ? (
@@ -227,9 +225,10 @@ export function ArchivedMenuManager({ userId, onMenuRestored }: ArchivedMenuMana
                       disabled={isRestoring}
                       className={`
                         flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
-                        ${isRestoring
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700'
+                        ${
+                          isRestoring
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
                         }
                       `}
                     >

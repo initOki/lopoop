@@ -3,11 +3,6 @@ import type { Tables, TablesInsert, TablesUpdate } from './database'
 // Menu types enum
 export enum MenuType {
   GROUP = 'group',
-  PERSONAL = 'personal',
-  DASHBOARD = 'dashboard',
-  EXTERNAL_LINK = 'external_link',
-  CUSTOM_PAGE = 'custom_page',
-  PROJECT = 'project'
 }
 
 // Base menu configuration interface
@@ -85,7 +80,9 @@ export interface MenuManagerProps {
 
 export interface MenuCreatorProps {
   userId: string
-  onMenuCreate: (menu: Omit<CustomMenu, 'id' | 'created_at' | 'updated_at'>) => void
+  onMenuCreate: (
+    menu: Omit<CustomMenu, 'id' | 'created_at' | 'updated_at'>,
+  ) => void
   onCancel: () => void
 }
 
@@ -138,7 +135,13 @@ export interface Widget {
   config: WidgetConfig
 }
 
-export type WidgetType = 'chart' | 'table' | 'counter' | 'calendar' | 'progress' | 'goals'
+export type WidgetType =
+  | 'chart'
+  | 'table'
+  | 'counter'
+  | 'calendar'
+  | 'progress'
+  | 'goals'
 
 export interface Position {
   x: number
@@ -189,44 +192,7 @@ export const DEFAULT_MENU_CONFIGS: Record<MenuType, MenuConfig> = {
     allowMemberInvite: true,
     features: {
       scheduling: true,
-      debtManagement: true
-    }
-  } as GroupMenuConfig,
-  
-  [MenuType.PERSONAL]: {
-    description: '',
-    defaultTab: 'debt',
-    features: {
       debtManagement: true,
-      scheduling: true,
-      settings: true
-    }
-  } as PersonalMenuConfig,
-  
-  [MenuType.DASHBOARD]: {
-    layout: 'grid',
-    widgets: []
-  } as DashboardMenuConfig,
-  
-  [MenuType.EXTERNAL_LINK]: {
-    links: [],
-    layout: 'list'
-  } as ExternalLinkMenuConfig,
-  
-  [MenuType.CUSTOM_PAGE]: {
-    content: '',
-    allowEdit: true,
-    template: 'blank'
-  } as CustomPageMenuConfig,
-  
-  [MenuType.PROJECT]: {
-    description: '',
-    status: 'active',
-    features: {
-      tasks: true,
-      timeline: false,
-      files: false,
-      discussions: true
-    }
-  } as ProjectMenuConfig
+    },
+  } as GroupMenuConfig,
 }

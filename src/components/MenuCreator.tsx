@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { X, AlertCircle, Info } from 'lucide-react'
-import { 
-  MenuType, 
+import {
+  MenuType,
   DEFAULT_MENU_CONFIGS,
   type MenuCreatorProps,
   type MenuFormData,
-  type MenuConfig
+  type MenuConfig,
 } from '../types/custom-menu'
 import { validateMenu, getUserMenuNames } from '../lib/custom-menu-utils'
 
@@ -14,13 +14,17 @@ import { validateMenu, getUserMenuNames } from '../lib/custom-menu-utils'
  * 메뉴 타입 선택 인터페이스, 메뉴 이름 입력 및 검증
  * 요구사항: 1.1, 1.2, 1.3
  */
-export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps) {
+export function MenuCreator({
+  userId,
+  onMenuCreate,
+  onCancel,
+}: MenuCreatorProps) {
   const [formData, setFormData] = useState<MenuFormData>({
     name: '',
-    type: MenuType.PERSONAL,
-    config: DEFAULT_MENU_CONFIGS[MenuType.PERSONAL]
+    type: MenuType.GROUP,
+    config: DEFAULT_MENU_CONFIGS[MenuType.GROUP],
   })
-  
+
   const [existingNames, setExistingNames] = useState<string[]>([])
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [validationWarnings, setValidationWarnings] = useState<string[]>([])
@@ -36,13 +40,13 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
         console.error('기존 메뉴 이름 로드 실패:', error)
       }
     }
-    
+
     loadExistingNames()
   }, [userId])
 
   // 메뉴 이름 변경 시 검증
   const handleNameChange = (name: string) => {
-    setFormData(prev => ({ ...prev, name }))
+    setFormData((prev) => ({ ...prev, name }))
     validateForm(name, formData.type, formData.config)
   }
 
@@ -56,20 +60,20 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
   // 폼 제출
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (validationErrors.length > 0) {
       return
     }
 
     setIsSubmitting(true)
-    
+
     try {
       await onMenuCreate({
         name: formData.name.trim(),
         type: formData.type,
         config: formData.config,
         user_id: userId,
-        menu_order: 0 // 기본값, 실제로는 현재 메뉴 수 + 1로 설정
+        menu_order: 0, // 기본값, 실제로는 현재 메뉴 수 + 1로 설정
       })
     } catch (error) {
       console.error('메뉴 생성 실패:', error)
@@ -83,7 +87,9 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
       <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border">
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground">새 메뉴 생성</h2>
+          <h2 className="text-xl font-semibold text-foreground">
+            새 메뉴 생성
+          </h2>
           <button
             onClick={onCancel}
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
@@ -95,7 +101,10 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* 메뉴 이름 입력 */}
           <div>
-            <label htmlFor="menu-name" className="block text-sm font-medium text-foreground mb-2">
+            <label
+              htmlFor="menu-name"
+              className="block text-sm font-medium text-foreground mb-2"
+            >
               메뉴 이름 *
             </label>
             <input
@@ -159,7 +168,9 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-5 h-5 text-red mt-0.5 shrink-0" />
                 <div>
-                  <div className="font-medium text-destructive mb-1">입력 오류</div>
+                  <div className="font-medium text-destructive mb-1">
+                    입력 오류
+                  </div>
                   <ul className="text-destructive/80 text-sm space-y-1">
                     {validationErrors.map((error, index) => (
                       <li key={index}>• {error}</li>
@@ -176,7 +187,9 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
               <div className="flex items-start gap-2">
                 <Info className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
                 <div>
-                  <div className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">주의사항</div>
+                  <div className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">
+                    주의사항
+                  </div>
                   <ul className="text-yellow-600 dark:text-yellow-300 text-sm space-y-1">
                     {validationWarnings.map((warning, index) => (
                       <li key={index}>• {warning}</li>
@@ -199,7 +212,11 @@ export function MenuCreator({ userId, onMenuCreate, onCancel }: MenuCreatorProps
             </button>
             <button
               type="submit"
-              disabled={validationErrors.length > 0 || !formData.name.trim() || isSubmitting}
+              disabled={
+                validationErrors.length > 0 ||
+                !formData.name.trim() ||
+                isSubmitting
+              }
               className="text-white border cursor-pointer px-4 py-2 bg-gray-900 rounded-lg disabled:bg-gray-700 disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
             >
               {isSubmitting ? '생성 중...' : '메뉴 생성'}

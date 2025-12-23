@@ -1,49 +1,46 @@
 import { supabase } from './supabase'
-import { 
-  MenuType,
-  DEFAULT_MENU_CONFIGS
-} from '../types/custom-menu'
-import { 
-  checkMenuDeletionImpact, 
-  notifyAffectedUsers 
+import { MenuType, DEFAULT_MENU_CONFIGS } from '../types/custom-menu'
+import {
+  checkMenuDeletionImpact,
+  notifyAffectedUsers,
 } from './menu-archive-utils'
-import { 
-  withRetry, 
-  withOfflineSupport, 
+import {
+  withRetry,
+  withOfflineSupport,
   offlineActionQueue,
-  processOfflineActions 
+  processOfflineActions,
 } from './network-error-handler'
 import {
   validateMenuData,
   checkRateLimit,
-  logSecurityEvent
+  logSecurityEvent,
 } from './input-validation-security'
-import type { 
-  CustomMenu, 
-  CustomMenuInsert, 
+import type {
+  CustomMenu,
+  CustomMenuInsert,
   CustomMenuUpdate,
   MenuMember,
   MenuMemberInsert,
   MenuConfig,
   MenuValidationResult,
-  MenuLimits
+  MenuLimits,
 } from '../types/custom-menu'
 
 // Menu validation constants
 export const MENU_LIMITS: MenuLimits = {
   maxMenusPerUser: 20,
   maxNameLength: 100,
-  maxConfigSize: 10000 // bytes
+  maxConfigSize: 10000, // bytes
 }
 
 /**
  * Validates menu data before creation or update
  */
 export function validateMenu(
-  name: string, 
-  type: MenuType, 
+  name: string,
+  type: MenuType,
   config: MenuConfig,
-  existingNames: string[] = []
+  existingNames: string[] = [],
 ): MenuValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
@@ -52,7 +49,9 @@ export function validateMenu(
   if (!name || name.trim().length === 0) {
     errors.push('메뉴 이름은 필수입니다')
   } else if (name.length > MENU_LIMITS.maxNameLength) {
-    errors.push(`메뉴 이름은 ${MENU_LIMITS.maxNameLength}자를 초과할 수 없습니다`)
+    errors.push(
+      `메뉴 이름은 ${MENU_LIMITS.maxNameLength}자를 초과할 수 없습니다`,
+    )
   } else if (existingNames.includes(name.trim())) {
     errors.push('이미 존재하는 메뉴 이름입니다')
   }
@@ -71,46 +70,15 @@ export function validateMenu(
   // Validate config size
   const configSize = JSON.stringify(config).length
   if (configSize > MENU_LIMITS.maxConfigSize) {
-    errors.push(`메뉴 설정이 너무 큽니다 (최대 ${MENU_LIMITS.maxConfigSize} bytes)`)
-  }
-
-  // Type-specific validation
-  switch (type) {
-    case MenuType.EXTERNAL_LINK:
-      const linkConfig = config as any
-      if (linkConfig.links) {
-        linkConfig.links.forEach((link: any, index: number) => {
-          if (!link.url || !isValidUrl(link.url)) {
-            errors.push(`링크 ${index + 1}의 URL이 유효하지 않습니다`)
-          }
-        })
-      }
-      break
-    
-    case MenuType.CUSTOM_PAGE:
-      const pageConfig = config as any
-      if (pageConfig.content && pageConfig.content.length > 50000) {
-        warnings.push('페이지 콘텐츠가 매우 큽니다. 성능에 영향을 줄 수 있습니다')
-      }
-      break
+    errors.push(
+      `메뉴 설정이 너무 큽니다 (최대 ${MENU_LIMITS.maxConfigSize} bytes)`,
+    )
   }
 
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
-  }
-}
-
-/**
- * Validates URL format
- */
-function isValidUrl(url: string): boolean {
-  try {
-    new URL(url)
-    return true
-  } catch {
-    return false
+    warnings,
   }
 }
 
@@ -170,7 +138,9 @@ export async function getUserMenuNames(userId: string): Promise<string[]> {
  * Creates a new custom menu with enhanced security validation
  * 요구사항 8.1, 8.2: 사용자당 메뉴 수 제한, 악성 콘텐츠 검증
  */
-export async function createCustomMenu(menuData: CustomMenuInsert): Promise<CustomMenu | null> {
+export async function createCustomMenu(
+  menuData: CustomMenuInsert,
+): Promise<CustomMenu | null> {
   // Rate limiting check
   const rateLimit = checkRateLimit(menuData.user_id)
   if (!rateLimit.allowed) {
@@ -180,14 +150,14 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
 
   // Get existing menu names for validation
   const existingNames = await getUserMenuNames(menuData.user_id)
-  
+
   // Comprehensive security validation
   const validation = validateMenuData({
     name: menuData.name,
     type: menuData.type,
     config: (menuData.config as MenuConfig) || {},
     userId: menuData.user_id,
-    existingNames
+    existingNames,
   })
 
   if (!validation.isValid) {
@@ -198,11 +168,11 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
       details: {
         errors: validation.errors,
         menuName: menuData.name,
-        menuType: menuData.type
+        menuType: menuData.type,
       },
-      severity: 'medium'
+      severity: 'medium',
     })
-    
+
     throw new Error(`메뉴 생성 실패: ${validation.errors.join(', ')}`)
   }
 
@@ -214,19 +184,23 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
       action: 'menu_limit_exceeded',
       details: {
         currentLimit: MENU_LIMITS.maxMenusPerUser,
-        attemptedMenuName: menuData.name
+        attemptedMenuName: menuData.name,
       },
-      severity: 'low'
+      severity: 'low',
     })
-    
-    throw new Error(`메뉴 생성 한도에 도달했습니다 (최대 ${MENU_LIMITS.maxMenusPerUser}개)`)
+
+    throw new Error(
+      `메뉴 생성 한도에 도달했습니다 (최대 ${MENU_LIMITS.maxMenusPerUser}개)`,
+    )
   }
 
   // Use sanitized data from validation
   const sanitizedData = {
     ...menuData,
     name: validation.sanitizedValue?.name || menuData.name,
-    config: validation.sanitizedValue?.config || getDefaultMenuConfig(menuData.type as MenuType)
+    config:
+      validation.sanitizedValue?.config ||
+      getDefaultMenuConfig(menuData.type as MenuType),
   }
 
   // Log successful validation
@@ -237,9 +211,9 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
       details: {
         warnings: validation.warnings,
         menuName: sanitizedData.name,
-        menuType: sanitizedData.type
+        menuType: sanitizedData.type,
       },
-      severity: 'low'
+      severity: 'low',
     })
   }
 
@@ -264,9 +238,9 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
         details: {
           menuId: data.id,
           menuName: data.name,
-          menuType: data.type
+          menuType: data.type,
         },
-        severity: 'low'
+        severity: 'low',
       })
 
       return data
@@ -274,8 +248,8 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
     {
       type: 'create',
       data: sanitizedData,
-      userId: menuData.user_id
-    }
+      userId: menuData.user_id,
+    },
   )
 }
 
@@ -284,9 +258,9 @@ export async function createCustomMenu(menuData: CustomMenuInsert): Promise<Cust
  * 요구사항 8.1, 8.2: 사용자당 메뉴 수 제한, 악성 콘텐츠 검증
  */
 export async function updateCustomMenu(
-  menuId: string, 
+  menuId: string,
   updates: CustomMenuUpdate,
-  userId: string
+  userId: string,
 ): Promise<CustomMenu | null> {
   // Rate limiting check
   const rateLimit = checkRateLimit(userId)
@@ -297,8 +271,13 @@ export async function updateCustomMenu(
 
   // Get current menu and existing names for validation
   const [currentMenuResult, existingNames] = await Promise.all([
-    supabase.from('custom_menus').select('*').eq('id', menuId).eq('user_id', userId).single(),
-    getUserMenuNames(userId)
+    supabase
+      .from('custom_menus')
+      .select('*')
+      .eq('id', menuId)
+      .eq('user_id', userId)
+      .single(),
+    getUserMenuNames(userId),
   ])
 
   if (currentMenuResult.error || !currentMenuResult.data) {
@@ -310,14 +289,14 @@ export async function updateCustomMenu(
   // If name is being updated, validate it
   if (updates.name) {
     // Remove current menu name from existing names for validation
-    const otherNames = existingNames.filter(name => name !== currentMenu.name)
-    
+    const otherNames = existingNames.filter((name) => name !== currentMenu.name)
+
     const validation = validateMenuData({
       name: updates.name,
       type: updates.type || currentMenu.type,
       config: updates.config || currentMenu.config,
       userId,
-      existingNames: otherNames
+      existingNames: otherNames,
     })
 
     if (!validation.isValid) {
@@ -327,11 +306,11 @@ export async function updateCustomMenu(
         details: {
           menuId,
           errors: validation.errors,
-          updates
+          updates,
         },
-        severity: 'medium'
+        severity: 'medium',
       })
-      
+
       throw new Error(`메뉴 업데이트 실패: ${validation.errors.join(', ')}`)
     }
 
@@ -349,9 +328,9 @@ export async function updateCustomMenu(
         details: {
           menuId,
           warnings: validation.warnings,
-          updates
+          updates,
         },
-        severity: 'low'
+        severity: 'low',
       })
     }
   }
@@ -379,9 +358,9 @@ export async function updateCustomMenu(
         details: {
           menuId,
           updates,
-          menuName: data.name
+          menuName: data.name,
         },
-        severity: 'low'
+        severity: 'low',
       })
 
       return data
@@ -389,8 +368,8 @@ export async function updateCustomMenu(
     {
       type: 'update',
       data: { menuId, updates, userId },
-      userId
-    }
+      userId,
+    },
   )
 }
 
@@ -399,7 +378,10 @@ export async function updateCustomMenu(
  * Includes network error handling and offline support
  * 요구사항 6.1, 6.2, 6.3, 6.4: 확인 대화상자, 완전 제거, 데이터 보관, 사용자 알림
  */
-export async function deleteCustomMenu(menuId: string, userId: string): Promise<boolean> {
+export async function deleteCustomMenu(
+  menuId: string,
+  userId: string,
+): Promise<boolean> {
   try {
     // 메뉴 정보 가져오기
     const { data: menu, error: fetchError } = await supabase
@@ -415,7 +397,7 @@ export async function deleteCustomMenu(menuId: string, userId: string): Promise<
 
     // 삭제 영향 확인 (그룹 메뉴의 경우)
     const impact = await checkMenuDeletionImpact(menuId)
-    
+
     // 그룹 메뉴이고 다른 사용자에게 영향을 주는 경우 알림
     if (menu.type === MenuType.GROUP && impact.hasMembers) {
       await notifyAffectedUsers(menu.name, impact.affectedUsers, userId)
@@ -441,8 +423,8 @@ export async function deleteCustomMenu(menuId: string, userId: string): Promise<
       {
         type: 'delete',
         data: { menuId, userId, menuData: menu },
-        userId
-      }
+        userId,
+      },
     )
 
     return result !== null ? result : false
@@ -455,7 +437,9 @@ export async function deleteCustomMenu(menuId: string, userId: string): Promise<
 /**
  * Gets all custom menus for a user with retry logic
  */
-export async function getUserCustomMenus(userId: string): Promise<CustomMenu[]> {
+export async function getUserCustomMenus(
+  userId: string,
+): Promise<CustomMenu[]> {
   return await withRetry(async () => {
     const { data, error } = await supabase
       .from('custom_menus')
@@ -476,8 +460,8 @@ export async function getUserCustomMenus(userId: string): Promise<CustomMenu[]> 
  * Reorders custom menus for a user with offline support
  */
 export async function reorderCustomMenus(
-  userId: string, 
-  menuOrders: { id: string; order: number }[]
+  userId: string,
+  menuOrders: { id: string; order: number }[],
 ): Promise<boolean> {
   const result = await withOfflineSupport(
     async () => {
@@ -487,7 +471,7 @@ export async function reorderCustomMenus(
           .from('custom_menus')
           .update({ menu_order: order })
           .eq('id', id)
-          .eq('user_id', userId)
+          .eq('user_id', userId),
       )
 
       await Promise.all(updates)
@@ -496,8 +480,8 @@ export async function reorderCustomMenus(
     {
       type: 'reorder',
       data: { userId, menuOrders },
-      userId
-    }
+      userId,
+    },
   )
 
   return result !== null ? result : false
@@ -506,7 +490,9 @@ export async function reorderCustomMenus(
 /**
  * Adds a member to a group menu
  */
-export async function addMenuMember(memberData: MenuMemberInsert): Promise<MenuMember | null> {
+export async function addMenuMember(
+  memberData: MenuMemberInsert,
+): Promise<MenuMember | null> {
   const { data, error } = await supabase
     .from('menu_members')
     .insert(memberData)
@@ -524,7 +510,10 @@ export async function addMenuMember(memberData: MenuMemberInsert): Promise<MenuM
 /**
  * Removes a member from a group menu
  */
-export async function removeMenuMember(menuId: string, userId: string): Promise<boolean> {
+export async function removeMenuMember(
+  menuId: string,
+  userId: string,
+): Promise<boolean> {
   const { error } = await supabase
     .from('menu_members')
     .delete()
@@ -561,7 +550,9 @@ export async function getMenuMembers(menuId: string): Promise<MenuMember[]> {
  * Processes offline menu actions when connection is restored
  * 요구사항 7.5: 네트워크 오류 복구
  */
-export async function processOfflineMenuActions(userId: string): Promise<{ processed: number; failed: number }> {
+export async function processOfflineMenuActions(
+  userId: string,
+): Promise<{ processed: number; failed: number }> {
   return await processOfflineActions(userId, {
     create: async (data) => {
       const { data: result, error } = await supabase
@@ -569,11 +560,11 @@ export async function processOfflineMenuActions(userId: string): Promise<{ proce
         .insert(data)
         .select()
         .single()
-      
+
       if (error) throw error
       return result
     },
-    
+
     update: async ({ menuId, updates, userId: actionUserId }) => {
       const { data: result, error } = await supabase
         .from('custom_menus')
@@ -582,34 +573,35 @@ export async function processOfflineMenuActions(userId: string): Promise<{ proce
         .eq('user_id', actionUserId)
         .select()
         .single()
-      
+
       if (error) throw error
       return result
     },
-    
+
     delete: async ({ menuId, userId: actionUserId }) => {
       const { error } = await supabase
         .from('custom_menus')
         .delete()
         .eq('id', menuId)
         .eq('user_id', actionUserId)
-      
+
       if (error) throw error
       return true
     },
-    
+
     reorder: async ({ userId: actionUserId, menuOrders }) => {
-      const updates = menuOrders.map(({ id, order }: { id: string; order: number }) =>
-        supabase
-          .from('custom_menus')
-          .update({ menu_order: order })
-          .eq('id', id)
-          .eq('user_id', actionUserId)
+      const updates = menuOrders.map(
+        ({ id, order }: { id: string; order: number }) =>
+          supabase
+            .from('custom_menus')
+            .update({ menu_order: order })
+            .eq('id', id)
+            .eq('user_id', actionUserId),
       )
-      
+
       await Promise.all(updates)
       return true
-    }
+    },
   })
 }
 

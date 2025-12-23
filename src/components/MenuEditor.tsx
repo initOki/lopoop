@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { X, AlertCircle, Info, AlertTriangle } from 'lucide-react'
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select'
-import { 
-  MenuType, 
+import {
+  MenuType,
   DEFAULT_MENU_CONFIGS,
   type CustomMenu,
-  type MenuConfig
+  type MenuConfig,
 } from '../types/custom-menu'
 import { validateMenu, getUserMenuNames } from '../lib/custom-menu-utils'
 
@@ -33,70 +26,34 @@ interface MenuFormData {
  * 기존 메뉴 설정 로드 및 편집, 메뉴 타입 변경 시 데이터 보존/경고
  * 요구사항: 5.1, 5.2, 5.4, 5.5
  */
-export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorProps) {
+export function MenuEditor({
+  userId,
+  menu,
+  onMenuUpdate,
+  onCancel,
+}: MenuEditorProps) {
   const [formData, setFormData] = useState<MenuFormData>({
     name: menu.name,
     type: menu.type as MenuType,
-    config: (menu.config as MenuConfig) || DEFAULT_MENU_CONFIGS[menu.type as MenuType]
+    config:
+      (menu.config as MenuConfig) ||
+      DEFAULT_MENU_CONFIGS[menu.type as MenuType],
   })
-  
+
   const [originalData] = useState<MenuFormData>({
     name: menu.name,
     type: menu.type as MenuType,
-    config: (menu.config as MenuConfig) || DEFAULT_MENU_CONFIGS[menu.type as MenuType]
+    config:
+      (menu.config as MenuConfig) ||
+      DEFAULT_MENU_CONFIGS[menu.type as MenuType],
   })
-  
+
   const [existingNames, setExistingNames] = useState<string[]>([])
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [validationWarnings, setValidationWarnings] = useState<string[]>([])
-  const [typeChangeWarning, setTypeChangeWarning] = useState<string | null>(null)
+  const [typeChangeWarning] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-
-  // 메뉴 타입별 정보
-  const menuTypeInfo: Record<MenuType, {
-    name: string
-    description: string
-    icon: string
-    features: string[]
-    compatibleTypes: MenuType[]
-  }> = {
-    [MenuType.GROUP]: {
-      name: '그룹',
-      description: '멤버 관리, 공지사항, 그룹 스케줄링 기능을 제공합니다',
-      icon: '👥',
-      features: ['멤버 관리', '공지사항', '그룹 스케줄링', '채팅'],
-      compatibleTypes: [MenuType.PROJECT] // 호환 가능한 타입
-    },
-    [MenuType.DASHBOARD]: {
-      name: '대시보드',
-      description: '커스터마이징 가능한 위젯과 개인 추적 도구를 제공합니다',
-      icon: '📊',
-      features: ['위젯 시스템', '레이아웃 커스터마이징', '데이터 시각화'],
-      compatibleTypes: [MenuType.CUSTOM_PAGE]
-    },
-    [MenuType.EXTERNAL_LINK]: {
-      name: '외부 링크',
-      description: '링크 관리와 빠른 접근 기능을 제공합니다',
-      icon: '🔗',
-      features: ['링크 관리', '빠른 접근', '카테고리 분류'],
-      compatibleTypes: [] as MenuType[]
-    },
-    [MenuType.CUSTOM_PAGE]: {
-      name: '커스텀 페이지',
-      description: '유연한 콘텐츠 에디터를 제공합니다',
-      icon: '📄',
-      features: ['콘텐츠 에디터', '템플릿 시스템', '마크다운 지원'],
-      compatibleTypes: [MenuType.DASHBOARD]
-    },
-    [MenuType.PROJECT]: {
-      name: '프로젝트',
-      description: '프로젝트 관리 도구를 제공합니다',
-      icon: '📁',
-      features: ['작업 관리', '타임라인', '파일 공유', '토론'],
-      compatibleTypes: [MenuType.GROUP]
-    }
-  }
 
   // 기존 메뉴 이름 로드 (현재 메뉴 제외)
   useEffect(() => {
@@ -104,76 +61,28 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
       try {
         const names = await getUserMenuNames(userId)
         // 현재 편집 중인 메뉴 이름은 제외
-        setExistingNames(names.filter(name => name !== menu.name))
+        setExistingNames(names.filter((name) => name !== menu.name))
       } catch (error) {
         console.error('기존 메뉴 이름 로드 실패:', error)
       }
     }
-    
+
     loadExistingNames()
   }, [userId, menu.name])
 
   // 변경사항 감지
   useEffect(() => {
-    const changed = 
+    const changed =
       formData.name !== originalData.name ||
       formData.type !== originalData.type ||
       JSON.stringify(formData.config) !== JSON.stringify(originalData.config)
-    
+
     setHasChanges(changed)
   }, [formData, originalData])
 
-  // 메뉴 타입 변경 시 호환성 검사 및 설정 처리
-  const handleTypeChange = (newType: MenuType) => {
-    const currentTypeInfo = menuTypeInfo[originalData.type]
-    const isCompatible = currentTypeInfo.compatibleTypes.includes(newType)
-    
-    if (newType !== originalData.type) {
-      if (isCompatible) {
-        // 호환 가능한 타입: 기존 데이터 보존 시도
-        setTypeChangeWarning(
-          `메뉴 타입을 "${menuTypeInfo[newType].name}"로 변경합니다. ` +
-          `호환 가능한 타입이므로 기존 설정을 최대한 보존합니다.`
-        )
-        
-        // 기존 설정을 새 타입의 기본 설정과 병합
-        const newConfig = { ...DEFAULT_MENU_CONFIGS[newType], ...formData.config }
-        setFormData(prev => ({
-          ...prev,
-          type: newType,
-          config: newConfig
-        }))
-      } else {
-        // 호환되지 않는 타입: 데이터 손실 경고
-        setTypeChangeWarning(
-          `메뉴 타입을 "${menuTypeInfo[newType].name}"로 변경하면 ` +
-          `기존 설정이 손실될 수 있습니다. 계속하시겠습니까?`
-        )
-        
-        setFormData(prev => ({
-          ...prev,
-          type: newType,
-          config: DEFAULT_MENU_CONFIGS[newType]
-        }))
-      }
-    } else {
-      setTypeChangeWarning(null)
-      setFormData(prev => ({
-        ...prev,
-        type: newType,
-        config: originalData.config
-      }))
-    }
-    
-    // 타입 변경 시 검증 재실행
-    if (formData.name) {
-      validateForm(formData.name, newType, formData.config)
-    }
-  }
-
   // 메뉴 이름 변경 시 검증
   const handleNameChange = (name: string) => {
-    setFormData(prev => ({ ...prev, name }))
+    setFormData((prev) => ({ ...prev, name }))
     validateForm(name, formData.type, formData.config)
   }
 
@@ -187,45 +96,30 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
   // 폼 제출
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (validationErrors.length > 0) {
       return
     }
 
-    // 타입 변경 시 추가 확인
-    if (typeChangeWarning && formData.type !== originalData.type) {
-      const currentTypeInfo = menuTypeInfo[originalData.type]
-      const isCompatible = currentTypeInfo.compatibleTypes.includes(formData.type)
-      
-      if (!isCompatible) {
-        const confirmed = window.confirm(
-          `메뉴 타입을 "${menuTypeInfo[formData.type].name}"로 변경하면 ` +
-          `기존 설정이 손실될 수 있습니다.\n\n계속하시겠습니까?`
-        )
-        
-        if (!confirmed) {
-          return
-        }
-      }
-    }
-
     setIsSubmitting(true)
-    
+
     try {
       const updates: Partial<CustomMenu> = {}
-      
+
       if (formData.name !== originalData.name) {
         updates.name = formData.name.trim()
       }
-      
+
       if (formData.type !== originalData.type) {
         updates.type = formData.type
       }
-      
-      if (JSON.stringify(formData.config) !== JSON.stringify(originalData.config)) {
+
+      if (
+        JSON.stringify(formData.config) !== JSON.stringify(originalData.config)
+      ) {
         updates.config = formData.config
       }
-      
+
       if (Object.keys(updates).length > 0) {
         await onMenuUpdate(updates)
       }
@@ -235,16 +129,6 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
       setIsSubmitting(false)
     }
   }
-
-  // 변경사항 취소
-  const handleReset = () => {
-    setFormData(originalData)
-    setTypeChangeWarning(null)
-    setValidationErrors([])
-    setValidationWarnings([])
-  }
-
-  const selectedTypeInfo = menuTypeInfo[formData.type]
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
@@ -268,7 +152,10 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* 메뉴 이름 입력 */}
           <div>
-            <label htmlFor="menu-name" className="block text-sm font-medium text-white mb-2">
+            <label
+              htmlFor="menu-name"
+              className="block text-sm font-medium text-white mb-2"
+            >
               메뉴 이름 *
             </label>
             <input
@@ -306,7 +193,9 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
                 <div>
-                  <div className="font-medium text-yellow-800 mb-1">타입 변경 알림</div>
+                  <div className="font-medium text-yellow-800 mb-1">
+                    타입 변경 알림
+                  </div>
                   <p className="text-yellow-700 text-sm">{typeChangeWarning}</p>
                 </div>
               </div>
@@ -369,7 +258,9 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
               <div className="flex items-start gap-2">
                 <Info className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
                 <div>
-                  <div className="font-medium text-yellow-800 mb-1">주의사항</div>
+                  <div className="font-medium text-yellow-800 mb-1">
+                    주의사항
+                  </div>
                   <ul className="text-yellow-700 text-sm space-y-1">
                     {validationWarnings.map((warning, index) => (
                       <li key={index}>• {warning}</li>
@@ -394,7 +285,7 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
                 </button>
               )} */}
             </div>
-            
+
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -406,7 +297,12 @@ export function MenuEditor({ userId, menu, onMenuUpdate, onCancel }: MenuEditorP
               </button>
               <button
                 type="submit"
-                disabled={validationErrors.length > 0 || !formData.name.trim() || !hasChanges || isSubmitting}
+                disabled={
+                  validationErrors.length > 0 ||
+                  !formData.name.trim() ||
+                  !hasChanges ||
+                  isSubmitting
+                }
                 className="px-4 py-2 bg-gray-900 text-white rounded-lg  cursor-pointer disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
               >
                 {isSubmitting ? '저장 중...' : '변경사항 저장'}
