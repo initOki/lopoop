@@ -14,6 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_menus: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          type: 'group' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          config: Json
+          menu_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          type: 'group' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          config?: Json
+          menu_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          type?: 'group' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          config?: Json
+          menu_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_menus_menu_members_fkey"
+            columns: ["id"]
+            isOneToMany: true
+            referencedRelation: "menu_members"
+            referencedColumns: ["menu_id"]
+          }
+        ]
+      }
+      archived_menus: {
+        Row: {
+          id: string
+          original_menu_id: string
+          user_id: string
+          name: string
+          type: string
+          config: Json
+          menu_order: number
+          original_created_at: string
+          original_updated_at: string
+          deleted_at: string | null
+          recovery_expires_at: string | null
+          deleted_by: string
+        }
+        Insert: {
+          id?: string
+          original_menu_id: string
+          user_id: string
+          name: string
+          type: string
+          config?: Json
+          menu_order?: number
+          original_created_at: string
+          original_updated_at: string
+          deleted_at?: string | null
+          recovery_expires_at?: string | null
+          deleted_by: string
+        }
+        Update: {
+          id?: string
+          original_menu_id?: string
+          user_id?: string
+          name?: string
+          type?: string
+          config?: Json
+          menu_order?: number
+          original_created_at?: string
+          original_updated_at?: string
+          deleted_at?: string | null
+          recovery_expires_at?: string | null
+          deleted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archived_menu_members_archived_menu_id_fkey"
+            columns: ["id"]
+            isOneToMany: true
+            referencedRelation: "archived_menu_members"
+            referencedColumns: ["archived_menu_id"]
+          }
+        ]
+      }
+      archived_menu_members: {
+        Row: {
+          id: string
+          archived_menu_id: string
+          original_member_id: string
+          menu_id: string
+          user_id: string
+          role: string
+          joined_at: string
+          archived_at: string | null
+        }
+        Insert: {
+          id?: string
+          archived_menu_id: string
+          original_member_id: string
+          menu_id: string
+          user_id: string
+          role: string
+          joined_at: string
+          archived_at?: string | null
+        }
+        Update: {
+          id?: string
+          archived_menu_id?: string
+          original_member_id?: string
+          menu_id?: string
+          user_id?: string
+          role?: string
+          joined_at?: string
+          archived_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archived_menu_members_archived_menu_id_fkey"
+            columns: ["archived_menu_id"]
+            isOneToMany: false
+            referencedRelation: "archived_menus"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       debts: {
         Row: {
           amount: number | null
@@ -49,6 +184,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      menu_members: {
+        Row: {
+          id: string
+          menu_id: string
+          user_id: string
+          role: 'owner' | 'admin' | 'member'
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          menu_id: string
+          user_id: string
+          role?: 'owner' | 'admin' | 'member'
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          menu_id?: string
+          user_id?: string
+          role?: 'owner' | 'admin' | 'member'
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_members_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToMany: false
+            referencedRelation: "custom_menus"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       schedules: {
         Row: {

@@ -16,6 +16,8 @@ import './styles/globals.css'
 import DebtPage from './components/DebtPage.tsx'
 import Header from './components/Header.tsx'
 import SchedulePage from './components/SchedulePage.tsx'
+import MenuRouter from './components/MenuRouter.tsx'
+import { MenuManager } from './components/MenuManager.tsx'
 import App from './App.tsx'
 
 const rootRoute = createRootRoute({
@@ -49,7 +51,29 @@ const debtRoute = createRoute({
   component: DebtPage,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, scheduleRoute, debtRoute])
+// Custom menu route with dynamic menuId parameter
+const customMenuRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/menu/$menuId',
+  component: () => {
+    // For now, we'll use a placeholder userId. In a real app, this would come from auth context
+    const userId = 'current-user' // TODO: Replace with actual user ID from auth context
+    return <MenuRouter userId={userId} />
+  },
+})
+
+// Menu management route
+const menuManagementRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/menus',
+  component: () => {
+    // For now, we'll use a placeholder userId. In a real app, this would come from auth context
+    const userId = 'current-user' // TODO: Replace with actual user ID from auth context
+    return <MenuManager userId={userId} />
+  },
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, scheduleRoute, debtRoute, customMenuRoute, menuManagementRoute])
 
 const router = createRouter({
   routeTree,
