@@ -43,6 +43,18 @@ export function MenuDeleteDialog({
     }
   }
 
+  const handleConfirm = async () => {
+    if (confirmText !== menu.name) {
+      return
+    }
+
+    try {
+      await onConfirm()
+    } catch (error) {
+      console.error('메뉴 삭제 실패:', error)
+    }
+  }
+
   const isConfirmValid = confirmText === menu.name
 
   return (
@@ -83,7 +95,7 @@ export function MenuDeleteDialog({
           {/* 경고 메시지 */}
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
               <div>
                 <div className="font-medium text-red-800 mb-2">
                   이 작업은 되돌릴 수 없습니다
