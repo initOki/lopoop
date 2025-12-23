@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, X, Edit2 } from 'lucide-react'
+import { Plus, Trash2, Check, X, Edit2, User } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Debt } from '../types/debt'
-import { supabase } from '../lib/supabase'
+import type { Debt } from '../../types/debt'
+import { supabase } from '../../lib/supabase'
 
 // Supabase 데이터베이스 타입 정의
-interface DebtRow {
+interface PersonalDebtRow {
   id: string
+  user_id: string
   debtor: string
   creditor: string
   amount: number | null
@@ -24,11 +25,16 @@ interface DebtItem {
   description: string
 }
 
-export default function DebtPage() {
+interface PersonalDebtPageProps {
+  userId: string
+}
+
+export default function PersonalDebtPage({ userId }: PersonalDebtPageProps) {
   const [debts, setDebts] = useState<Debt[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
   const [formData, setFormData] = useState({
     debtor: '',
     creditor: '',
@@ -37,23 +43,25 @@ export default function DebtPage() {
     { id: crypto.randomUUID(), amount: '', item: '', description: '' },
   ])
 
-  // Supabase에서 빚 목록 가져오기 및 실시간 구독
+  // Supabase에서 개인 빚 목록 가져오기 및 실시간 구독
   useEffect(() => {
     fetchDebts()
 
-    // Supabase 실시간 구독 설정
+    // Supabase 실시간 구독 설정 (개인 빚만)
     const channel = supabase
-      .channel('debts-page-changes')
+      .channel('personal-debts-changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          event: '*',
           schema: 'public',
-          table: 'debts',
+          table: 'personal_debts',
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          console.log('Personal Debt realtime update:', payload)
           if (payload.eventType === 'INSERT') {
-            const newRow = payload.new as DebtRow
+            const newRow = payload.new as PersonalDebtRow
             const newDebt: Debt = {
               id: newRow.id,
               debtor: newRow.debtor,
@@ -64,11 +72,19 @@ export default function DebtPage() {
               createdAt: new Date(newRow.created_at),
               isPaid: newRow.is_paid,
             }
-            setDebts((prev) => [newDebt, ...prev])
+            // 중복 방지: 이미 존재하는 빚인지 확인
+            setDebts((prev) => {
+              const exists = prev.some(debt => debt.id === newDebt.id)
+              if (exists) return prev
+              return [newDebt, ...prev]
+            })
           } else if (payload.eventType === 'UPDATE') {
-            const updatedRow = payload.new as DebtRow
-            setDebts((prev) =>
-              prev.map((debt) =>
+            const updatedRow = payload.new as PersonalDebtRow
+            setDebts((prev) => {
+              const exists = prev.some(debt => debt.id === updatedRow.id)
+              if (!exists) return prev // 존재하지 않는 항목은 업데이트하지 않음
+              
+              return prev.map((debt) =>
                 debt.id === updatedRow.id
                   ? {
                       id: updatedRow.id,
@@ -81,34 +97,52 @@ export default function DebtPage() {
                       isPaid: updatedRow.is_paid,
                     }
                   : debt,
-              ),
-            )
+              )
+            })
           } else if (payload.eventType === 'DELETE') {
-            const deletedRow = payload.old as DebtRow
-            setDebts((prev) => prev.filter((debt) => debt.id !== deletedRow.id))
+            const deletedRow = payload.old as PersonalDebtRow
+            setDebts((prev) => {
+              const exists = prev.some(debt => debt.id === deletedRow.id)
+              if (!exists) return prev // 이미 삭제된 항목은 처리하지 않음
+              
+              return prev.filter((debt) => debt.id !== deletedRow.id)
+            })
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Personal Debt subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to personal debts realtime updates')
+          setIsRealtimeConnected(true)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to personal debts realtime updates')
+          setIsRealtimeConnected(false)
+          toast.error('실시간 업데이트 연결에 실패했습니다.')
+        } else if (status === 'CLOSED') {
+          setIsRealtimeConnected(false)
+          console.warn('Personal debts realtime connection closed')
+        }
+      })
 
-    // 컴포넌트 언마운트 시 구독 해제
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [userId])
 
   const fetchDebts = async () => {
     try {
       setIsLoading(true)
       const { data, error } = await supabase
-        .from('debts')
+        .from('personal_debts')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
       const formattedDebts: Debt[] =
-        (data as DebtRow[])?.map((debt) => ({
+        (data as PersonalDebtRow[])?.map((debt) => ({
           id: debt.id,
           debtor: debt.debtor,
           creditor: debt.creditor,
@@ -121,8 +155,8 @@ export default function DebtPage() {
 
       setDebts(formattedDebts)
     } catch (error) {
-      console.error('Error fetching debts:', error)
-      toast.error('빚 목록을 불러오는데 실패했습니다.')
+      console.error('Error fetching personal debts:', error)
+      toast.error('개인 빚 목록을 불러오는데 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -132,13 +166,11 @@ export default function DebtPage() {
     e.preventDefault()
 
     if (editingDebt) {
-      // 수정 모드
       await handleUpdate()
     } else {
-      // 추가 모드 - 여러 개의 빚을 한번에 등록
       try {
-        // 각 아이템에 대해 별도의 빚 레코드 생성
         const debtsToInsert = debtItems.map((item) => ({
+          user_id: userId,
           debtor: formData.debtor,
           creditor: formData.creditor,
           amount: item.amount ? parseFloat(item.amount) : null,
@@ -146,14 +178,16 @@ export default function DebtPage() {
           description: item.description || null,
         }))
 
-        const { error } = await supabase.from('debts').insert(debtsToInsert)
+        const { error } = await supabase.from('personal_debts').insert(debtsToInsert)
 
         if (error) throw error
 
-        toast.success(`${debtItems.length}개의 빚이 추가되었습니다.`)
+        toast.success(`${debtItems.length}개의 개인 빚이 추가되었습니다.`)
 
-        // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
-        setTimeout(() => fetchDebts(), 1000)
+        // 실시간 연결이 끊어진 경우 백업 새로고침
+        if (!isRealtimeConnected) {
+          setTimeout(() => fetchDebts(), 1000)
+        }
 
         setFormData({
           debtor: '',
@@ -164,8 +198,8 @@ export default function DebtPage() {
         ])
         setIsFormOpen(false)
       } catch (error) {
-        console.error('Error creating debt:', error)
-        toast.error('빚을 추가하는데 실패했습니다.')
+        console.error('Error creating personal debt:', error)
+        toast.error('개인 빚을 추가하는데 실패했습니다.')
       }
     }
   }
@@ -174,10 +208,9 @@ export default function DebtPage() {
     if (!editingDebt) return
 
     try {
-      // 수정 모드에서는 첫 번째 아이템만 사용
       const firstItem = debtItems[0]
       const { error } = await supabase
-        .from('debts')
+        .from('personal_debts')
         .update({
           debtor: formData.debtor,
           creditor: formData.creditor,
@@ -189,10 +222,12 @@ export default function DebtPage() {
 
       if (error) throw error
 
-      toast.success('빚이 수정되었습니다.')
+      toast.success('개인 빚이 수정되었습니다.')
 
-      // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
-      setTimeout(() => fetchDebts(), 1000)
+      // 실시간 연결이 끊어진 경우 백업 새로고침
+      if (!isRealtimeConnected) {
+        setTimeout(() => fetchDebts(), 1000)
+      }
 
       setFormData({
         debtor: '',
@@ -204,8 +239,8 @@ export default function DebtPage() {
       setIsFormOpen(false)
       setEditingDebt(null)
     } catch (error) {
-      console.error('Error updating debt:', error)
-      toast.error('빚을 수정하는데 실패했습니다.')
+      console.error('Error updating personal debt:', error)
+      toast.error('개인 빚을 수정하는데 실패했습니다.')
     }
   }
 
@@ -267,17 +302,23 @@ export default function DebtPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from('debts').delete().eq('id', id)
+      // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
+      setDebts((prev) => prev.filter((debt) => debt.id !== id))
+
+      const { error } = await supabase
+        .from('personal_debts')
+        .delete()
+        .eq('id', id)
 
       if (error) throw error
 
-      toast.success('빚이 삭제되었습니다.')
-
-      // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
-      setTimeout(() => fetchDebts(), 1000)
+      toast.success('개인 빚이 삭제되었습니다.')
     } catch (error) {
-      console.error('Error deleting debt:', error)
-      toast.error('빚을 삭제하는데 실패했습니다.')
+      console.error('Error deleting personal debt:', error)
+      toast.error('개인 빚을 삭제하는데 실패했습니다.')
+      
+      // 삭제 실패 시 데이터 다시 불러오기
+      fetchDebts()
     }
   }
 
@@ -285,10 +326,19 @@ export default function DebtPage() {
     const debt = debts.find((d) => d.id === id)
     if (!debt) return
 
+    const newPaidState = !debt.isPaid
+
     try {
+      // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
+      setDebts((prev) =>
+        prev.map((d) =>
+          d.id === id ? { ...d, isPaid: newPaidState } : d
+        )
+      )
+
       const { error } = await supabase
-        .from('debts')
-        .update({ is_paid: !debt.isPaid })
+        .from('personal_debts')
+        .update({ is_paid: newPaidState })
         .eq('id', id)
 
       if (error) throw error
@@ -296,23 +346,33 @@ export default function DebtPage() {
       toast.success(
         debt.isPaid ? '미납으로 변경되었습니다.' : '갚음으로 표시되었습니다.',
       )
-
-      // 실시간 구독이 실패할 경우를 대비한 백업 새로고침
-      setTimeout(() => fetchDebts(), 1000)
     } catch (error) {
-      console.error('Error updating debt:', error)
-      toast.error('빚 상태를 변경하는데 실패했습니다.')
+      console.error('Error updating personal debt:', error)
+      toast.error('개인 빚 상태를 변경하는데 실패했습니다.')
+      
+      // 업데이트 실패 시 원래 상태로 되돌리기
+      setDebts((prev) =>
+        prev.map((d) =>
+          d.id === id ? { ...d, isPaid: debt.isPaid } : d
+        )
+      )
     }
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+    <div className="p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">빚 관리</h1>
+          <div className="flex items-center gap-3">
+            <User className="w-6 h-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">개인 빚 관리</h2>
+            {/* 실시간 연결 상태 인디케이터 */}
+            <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+                 title={isRealtimeConnected ? '실시간 연결됨' : '실시간 연결 끊김'} />
+          </div>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus size={20} />새 빚 추가
           </button>
@@ -321,57 +381,57 @@ export default function DebtPage() {
         {/* 빚 목록 */}
         <div className="space-y-4">
           {isLoading ? (
-            <div className="bg-gray-800 rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-muted rounded-lg shadow p-8 text-center text-muted-foreground">
               로딩 중...
             </div>
           ) : debts.length === 0 ? (
-            <div className="bg-gray-800 rounded-lg shadow p-8 text-center text-gray-400">
-              등록된 빚이 없습니다. 새 빚을 추가해보세요.
+            <div className="bg-muted rounded-lg shadow p-8 text-center text-muted-foreground">
+              등록된 개인 빚이 없습니다. 새 빚을 추가해보세요.
             </div>
           ) : (
             debts.map((debt) => (
               <div
                 key={debt.id}
-                className={`bg-gray-700 rounded-lg shadow p-6 ${
+                className={`bg-card border border-border rounded-lg shadow-sm p-6 ${
                   debt.isPaid ? 'opacity-60' : ''
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-lg text-red-400">
+                      <span className="font-semibold text-lg text-red-500">
                         {debt.debtor}
                       </span>
-                      <span className="text-gray-500">→</span>
-                      <span className="font-semibold text-lg text-green-400">
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-semibold text-lg text-green-500">
                         {debt.creditor}
                       </span>
                       {debt.isPaid && (
-                        <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded">
+                        <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">
                           갚음
                         </span>
                       )}
                     </div>
 
-                    <div className="text-gray-300 space-y-1">
+                    <div className="text-foreground space-y-1">
                       {debt.amount && (
-                        <p className="text-xl font-bold text-white">
+                        <p className="text-xl font-bold text-foreground">
                           {debt.amount.toLocaleString()}원
                         </p>
                       )}
                       {debt.item && (
-                        <p className="text-gray-300">
+                        <p className="text-foreground">
                           <span className="font-medium">아이템:</span>{' '}
                           {debt.item}
                         </p>
                       )}
                       {debt.description && (
-                        <p className="text-gray-400">
+                        <p className="text-muted-foreground">
                           <span className="font-medium">설명:</span>{' '}
                           {debt.description}
                         </p>
                       )}
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {new Date(debt.createdAt).toLocaleDateString('ko-KR')}
                       </p>
                     </div>
@@ -382,8 +442,8 @@ export default function DebtPage() {
                       onClick={() => togglePaid(debt.id)}
                       className={`p-2 rounded-lg transition-colors ${
                         debt.isPaid
-                          ? 'bg-gray-200 hover:bg-gray-300 text-gray-600'
-                          : 'bg-green-100 hover:bg-green-200 text-green-600'
+                          ? 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                          : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
                       }`}
                       title={debt.isPaid ? '미납으로 변경' : '갚음으로 표시'}
                     >
@@ -391,14 +451,14 @@ export default function DebtPage() {
                     </button>
                     <button
                       onClick={() => handleEdit(debt)}
-                      className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
+                      className="p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
                       title="수정"
                     >
                       <Edit2 size={20} />
                     </button>
                     <button
                       onClick={() => handleDelete(debt.id)}
-                      className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
+                      className="p-2 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg transition-colors"
                       title="삭제"
                     >
                       <Trash2 size={20} />
@@ -412,14 +472,14 @@ export default function DebtPage() {
 
         {/* 폼 모달 */}
         {isFormOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4 text-white">
-                {editingDebt ? '빚 수정' : '새 빚 추가'}
-              </h2>
+              <h3 className="text-xl font-bold mb-4 text-foreground">
+                {editingDebt ? '개인 빚 수정' : '새 개인 빚 추가'}
+              </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     빚진 사람 *
                   </label>
                   <input
@@ -429,13 +489,13 @@ export default function DebtPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, debtor: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="이름을 입력하세요"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     빚을 받아야 하는 사람 *
                   </label>
                   <input
@@ -445,7 +505,7 @@ export default function DebtPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, creditor: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="이름을 입력하세요"
                   />
                 </div>
@@ -453,7 +513,7 @@ export default function DebtPage() {
                 {/* 아이템 목록 */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-foreground">
                       아이템 목록
                     </label>
                     {!editingDebt && (
@@ -471,17 +531,17 @@ export default function DebtPage() {
                   {debtItems.map((item, index) => (
                     <div
                       key={item.id}
-                      className="bg-gray-700 p-4 rounded-lg space-y-3 border border-gray-600"
+                      className="bg-muted p-4 rounded-lg space-y-3 border border-border"
                     >
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-300">
+                        <span className="text-sm font-medium text-foreground">
                           아이템 {index + 1}
                         </span>
                         {!editingDebt && debtItems.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeDebtItem(item.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
+                            className="text-destructive hover:text-destructive/80 transition-colors"
                           >
                             <X size={18} />
                           </button>
@@ -489,7 +549,7 @@ export default function DebtPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
                           금액
                         </label>
                         <input
@@ -498,13 +558,13 @@ export default function DebtPage() {
                           onChange={(e) =>
                             updateDebtItem(item.id, 'amount', e.target.value)
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           placeholder="금액을 입력하세요"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
                           아이템명
                         </label>
                         <input
@@ -513,13 +573,13 @@ export default function DebtPage() {
                           onChange={(e) =>
                             updateDebtItem(item.id, 'item', e.target.value)
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           placeholder="아이템 이름을 입력하세요"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
                           설명
                         </label>
                         <textarea
@@ -531,7 +591,7 @@ export default function DebtPage() {
                               e.target.value,
                             )
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           placeholder="추가 설명을 입력하세요"
                           rows={2}
                         />
@@ -543,14 +603,14 @@ export default function DebtPage() {
                 <div className="flex gap-2 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     {editingDebt ? '수정' : '추가'}
                   </button>
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                    className="flex-1 bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
                   >
                     취소
                   </button>

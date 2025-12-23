@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Check, X, Edit2 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Debt } from '../types/debt'
-import { supabase } from '../lib/supabase'
+import type { Debt } from '../../types/debt'
+import { supabase } from '../../lib/supabase'
 
 // Supabase 데이터베이스 타입 정의
 interface DebtRow {
@@ -24,7 +24,7 @@ interface DebtItem {
   description: string
 }
 
-export default function DebtPage() {
+export default function GroupDebtPage() {
   const [debts, setDebts] = useState<Debt[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -306,13 +306,13 @@ export default function DebtPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+    <div className="p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">빚 관리</h1>
+          <h2 className="text-2xl font-bold text-foreground">빚 관리</h2>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus size={20} />새 빚 추가
           </button>
@@ -321,57 +321,57 @@ export default function DebtPage() {
         {/* 빚 목록 */}
         <div className="space-y-4">
           {isLoading ? (
-            <div className="bg-gray-800 rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-muted rounded-lg shadow p-8 text-center text-muted-foreground">
               로딩 중...
             </div>
           ) : debts.length === 0 ? (
-            <div className="bg-gray-800 rounded-lg shadow p-8 text-center text-gray-400">
+            <div className="bg-muted rounded-lg shadow p-8 text-center text-muted-foreground">
               등록된 빚이 없습니다. 새 빚을 추가해보세요.
             </div>
           ) : (
             debts.map((debt) => (
               <div
                 key={debt.id}
-                className={`bg-gray-700 rounded-lg shadow p-6 ${
+                className={`bg-card border border-border rounded-lg shadow-sm p-6 ${
                   debt.isPaid ? 'opacity-60' : ''
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-lg text-red-400">
+                      <span className="font-semibold text-lg text-red-500">
                         {debt.debtor}
                       </span>
-                      <span className="text-gray-500">→</span>
-                      <span className="font-semibold text-lg text-green-400">
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-semibold text-lg text-green-500">
                         {debt.creditor}
                       </span>
                       {debt.isPaid && (
-                        <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded">
+                        <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">
                           갚음
                         </span>
                       )}
                     </div>
 
-                    <div className="text-gray-300 space-y-1">
+                    <div className="text-foreground space-y-1">
                       {debt.amount && (
-                        <p className="text-xl font-bold text-white">
+                        <p className="text-xl font-bold text-foreground">
                           {debt.amount.toLocaleString()}원
                         </p>
                       )}
                       {debt.item && (
-                        <p className="text-gray-300">
+                        <p className="text-foreground">
                           <span className="font-medium">아이템:</span>{' '}
                           {debt.item}
                         </p>
                       )}
                       {debt.description && (
-                        <p className="text-gray-400">
+                        <p className="text-muted-foreground">
                           <span className="font-medium">설명:</span>{' '}
                           {debt.description}
                         </p>
                       )}
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {new Date(debt.createdAt).toLocaleDateString('ko-KR')}
                       </p>
                     </div>
@@ -382,8 +382,8 @@ export default function DebtPage() {
                       onClick={() => togglePaid(debt.id)}
                       className={`p-2 rounded-lg transition-colors ${
                         debt.isPaid
-                          ? 'bg-gray-200 hover:bg-gray-300 text-gray-600'
-                          : 'bg-green-100 hover:bg-green-200 text-green-600'
+                          ? 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                          : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
                       }`}
                       title={debt.isPaid ? '미납으로 변경' : '갚음으로 표시'}
                     >
@@ -391,14 +391,14 @@ export default function DebtPage() {
                     </button>
                     <button
                       onClick={() => handleEdit(debt)}
-                      className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
+                      className="p-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg transition-colors"
                       title="수정"
                     >
                       <Edit2 size={20} />
                     </button>
                     <button
                       onClick={() => handleDelete(debt.id)}
-                      className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
+                      className="p-2 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg transition-colors"
                       title="삭제"
                     >
                       <Trash2 size={20} />
@@ -413,13 +413,13 @@ export default function DebtPage() {
         {/* 폼 모달 */}
         {isFormOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4 text-white">
+            <div className="bg-card rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl font-bold mb-4 text-foreground">
                 {editingDebt ? '빚 수정' : '새 빚 추가'}
-              </h2>
+              </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     빚진 사람 *
                   </label>
                   <input
@@ -429,13 +429,13 @@ export default function DebtPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, debtor: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="이름을 입력하세요"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     빚을 받아야 하는 사람 *
                   </label>
                   <input
@@ -445,7 +445,7 @@ export default function DebtPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, creditor: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="이름을 입력하세요"
                   />
                 </div>
@@ -453,7 +453,7 @@ export default function DebtPage() {
                 {/* 아이템 목록 */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-foreground">
                       아이템 목록
                     </label>
                     {!editingDebt && (
@@ -471,17 +471,17 @@ export default function DebtPage() {
                   {debtItems.map((item, index) => (
                     <div
                       key={item.id}
-                      className="bg-gray-700 p-4 rounded-lg space-y-3 border border-gray-600"
+                      className="bg-muted p-4 rounded-lg space-y-3 border border-border"
                     >
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-300">
+                        <span className="text-sm font-medium text-foreground">
                           아이템 {index + 1}
                         </span>
                         {!editingDebt && debtItems.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeDebtItem(item.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
+                            className="text-destructive hover:text-destructive/80 transition-colors"
                           >
                             <X size={18} />
                           </button>
@@ -489,7 +489,7 @@ export default function DebtPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
                           금액
                         </label>
                         <input
@@ -498,13 +498,13 @@ export default function DebtPage() {
                           onChange={(e) =>
                             updateDebtItem(item.id, 'amount', e.target.value)
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           placeholder="금액을 입력하세요"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
                           아이템명
                         </label>
                         <input
@@ -513,13 +513,13 @@ export default function DebtPage() {
                           onChange={(e) =>
                             updateDebtItem(item.id, 'item', e.target.value)
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           placeholder="아이템 이름을 입력하세요"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-1">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
                           설명
                         </label>
                         <textarea
@@ -531,7 +531,7 @@ export default function DebtPage() {
                               e.target.value,
                             )
                           }
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           placeholder="추가 설명을 입력하세요"
                           rows={2}
                         />
@@ -543,14 +543,14 @@ export default function DebtPage() {
                 <div className="flex gap-2 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     {editingDebt ? '수정' : '추가'}
                   </button>
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                    className="flex-1 bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-muted/80 transition-colors"
                   >
                     취소
                   </button>

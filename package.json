@@ -9,7 +9,11 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier",
-    "check": "prettier --write . && eslint --fix"
+    "check": "prettier --write . && eslint --fix",
+    "migrate:personal": "ts-node scripts/apply-personal-migration.ts",
+    "migrate:archive": "ts-node scripts/apply-archive-migration.ts",
+    "migrate:custom": "ts-node scripts/apply-migration.ts",
+    "migrate:menu-type": "ts-node scripts/apply-menu-type-migration.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
@@ -22,6 +26,7 @@
     "@tanstack/react-router-devtools": "^1.132.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "isomorphic-dompurify": "^2.34.0",
     "lucide-react": "^0.545.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
