@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, Check, X, Edit2, Calendar, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../../lib/supabase'
+import PersonalRaidSetup from '@/components/PersonalRaidSetup'
+import type { ExpeditionCharacter } from '@/types/loa'
 
 // 개인 스케줄 타입 정의
 interface PersonalSchedule {
@@ -9,6 +11,7 @@ interface PersonalSchedule {
   user_id: string
   title: string
   description?: string
+  type: 'raid'
   participants: string[]
   is_completed: boolean
   created_at: string
@@ -20,6 +23,7 @@ interface PersonalScheduleRow {
   user_id: string
   title: string
   description: string | null
+  type: 'raid'
   participants: string[]
   is_completed: boolean
   created_at: string
@@ -37,9 +41,13 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    type: 'raid' as const,
     participants: [] as string[],
   })
-  const [participantInput, setParticipantInput] = useState('')
+  
+  // 레이드 관련 상태 (단일 슬롯만 사용)
+  const [selectedRaid, setSelectedRaid] = useState('')
+  const [selectedSlots, setSelectedSlots] = useState<(ExpeditionCharacter | null)[]>([null, null, null, null])
 
   // Supabase에서 개인 스케줄 목록 가져오기 및 실시간 구독
   useEffect(() => {
@@ -65,6 +73,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
               user_id: newRow.user_id,
               title: newRow.title,
               description: newRow.description ?? undefined,
+              type: newRow.type,
               participants: newRow.participants,
               is_completed: newRow.is_completed,
               created_at: newRow.created_at,
@@ -85,6 +94,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                       user_id: updatedRow.user_id,
                       title: updatedRow.title,
                       description: updatedRow.description ?? undefined,
+                      type: updatedRow.type,
                       participants: updatedRow.participants,
                       is_completed: updatedRow.is_completed,
                       created_at: updatedRow.created_at,
@@ -130,6 +140,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
           user_id: schedule.user_id,
           title: schedule.title,
           description: schedule.description ?? undefined,
+          type: schedule.type,
           participants: schedule.participants,
           is_completed: schedule.is_completed,
           created_at: schedule.created_at,
@@ -151,11 +162,19 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
       await handleUpdate()
     } else {
       try {
+        // 레이드 타입이므로 선택된 캐릭터를 참가자로 설정
+        let participants: string[] = []
+        const selectedCharacter = selectedSlots.find(slot => slot !== null)
+        if (selectedCharacter) {
+          participants = [`${selectedCharacter.CharacterName} / ${selectedCharacter.CharacterClassName} (${selectedCharacter.ItemLevel.toLocaleString()})`]
+        }
+
         const scheduleToInsert = {
           user_id: userId,
           title: formData.title,
           description: formData.description || null,
-          participants: formData.participants,
+          type: formData.type,
+          participants: participants,
         }
 
         const { error } = await supabase.from('personal_schedules').insert([scheduleToInsert])
@@ -180,12 +199,20 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     if (!editingSchedule) return
 
     try {
+      // 레이드 타입이므로 선택된 캐릭터를 참가자로 설정
+      let participants: string[] = []
+      const selectedCharacter = selectedSlots.find(slot => slot !== null)
+      if (selectedCharacter) {
+        participants = [`${selectedCharacter.CharacterName} / ${selectedCharacter.CharacterClassName} (${selectedCharacter.ItemLevel.toLocaleString()})`]
+      }
+
       const { error } = await supabase
         .from('personal_schedules')
         .update({
           title: formData.title,
           description: formData.description || null,
-          participants: formData.participants,
+          type: formData.type,
+          participants: participants,
         })
         .eq('id', editingSchedule.id)
 
@@ -209,9 +236,11 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     setFormData({
       title: '',
       description: '',
+      type: 'raid',
       participants: [],
     })
-    setParticipantInput('')
+    setSelectedRaid('')
+    setSelectedSlots([null, null, null, null])
   }
 
   const handleEdit = (schedule: PersonalSchedule) => {
@@ -219,8 +248,13 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     setFormData({
       title: schedule.title,
       description: schedule.description || '',
+      type: schedule.type,
       participants: schedule.participants,
     })
+    
+    // 캐릭터 정보 파싱 시도 (완벽하지 않을 수 있음)
+    setSelectedSlots([null, null, null, null])
+    
     setIsFormOpen(true)
   }
 
@@ -267,22 +301,15 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     }
   }
 
-  const addParticipant = () => {
-    if (participantInput.trim() && !formData.participants.includes(participantInput.trim())) {
-      setFormData({
-        ...formData,
-        participants: [...formData.participants, participantInput.trim()],
-      })
-      setParticipantInput('')
-    }
+  const getScheduleTypeLabel = () => {
+    return '레이드'
   }
 
-  const removeParticipant = (participant: string) => {
-    setFormData({
-      ...formData,
-      participants: formData.participants.filter((p) => p !== participant),
-    })
+  const getScheduleTypeColor = () => {
+    return 'bg-red-500/20 text-red-400'
   }
+
+
 
   return (
     <div className="p-6">
@@ -325,6 +352,9 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                       <h3 className="font-semibold text-lg text-foreground">
                         {schedule.title}
                       </h3>
+                      <span className={`text-xs px-2 py-1 rounded ${getScheduleTypeColor()}`}>
+                        {getScheduleTypeLabel()}
+                      </span>
                       {schedule.is_completed && (
                         <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">
                           완료
@@ -341,7 +371,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
                       {schedule.participants.length > 0 && (
                         <div>
-                          <span className="font-medium text-foreground">참가자:</span>
+                          <span className="font-medium text-foreground">캐릭터:</span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {schedule.participants.map((participant, index) => (
                               <span
@@ -393,7 +423,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
         {/* 폼 모달 */}
         {isFormOpen && (
           <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-bold mb-4 text-foreground">
                 {editingSchedule ? '개인 스케줄 수정' : '새 개인 스케줄 추가'}
               </h3>
@@ -410,7 +440,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                       setFormData({ ...formData, title: e.target.value })
                     }
                     className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="스케줄 제목을 입력하세요"
+                    placeholder="레이드 스케줄 제목을 입력하세요"
                   />
                 </div>
 
@@ -424,51 +454,20 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                       setFormData({ ...formData, description: e.target.value })
                     }
                     className="w-full px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="스케줄 설명을 입력하세요"
+                    placeholder="레이드 설명을 입력하세요"
                     rows={3}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    참가자
-                  </label>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={participantInput}
-                      onChange={(e) => setParticipantInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParticipant())}
-                      className="flex-1 px-3 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      placeholder="참가자 이름을 입력하세요"
-                    />
-                    <button
-                      type="button"
-                      onClick={addParticipant}
-                      className="px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
-                    >
-                      추가
-                    </button>
-                  </div>
-                  {formData.participants.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {formData.participants.map((participant, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary text-xs rounded"
-                        >
-                          {participant}
-                          <button
-                            type="button"
-                            onClick={() => removeParticipant(participant)}
-                            className="text-primary hover:text-primary/80"
-                          >
-                            <X size={14} />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                {/* 레이드 선택 및 캐릭터 검색 */}
+                <div className="border border-border rounded-lg p-4 bg-gray-900/50">
+                  <h4 className="text-lg font-semibold text-foreground mb-4">캐릭터 선택</h4>
+                  <PersonalRaidSetup
+                    selectedSlots={selectedSlots}
+                    onSlotsChange={setSelectedSlots}
+                    selectedRaid={selectedRaid}
+                    onRaidChange={setSelectedRaid}
+                  />
                 </div>
 
                 <div className="flex gap-2 pt-4">

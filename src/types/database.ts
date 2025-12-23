@@ -262,9 +262,7 @@ export type Database = {
           user_id: string
           title: string
           description: string | null
-          start_time: string
-          end_time: string
-          type: 'raid' | 'meeting' | 'event' | 'personal'
+          type: 'raid'
           participants: string[]
           is_completed: boolean
           created_at: string
@@ -275,9 +273,7 @@ export type Database = {
           user_id: string
           title: string
           description?: string | null
-          start_time: string
-          end_time: string
-          type?: 'raid' | 'meeting' | 'event' | 'personal'
+          type?: 'raid'
           participants?: string[]
           is_completed?: boolean
           created_at?: string
@@ -288,9 +284,7 @@ export type Database = {
           user_id?: string
           title?: string
           description?: string | null
-          start_time?: string
-          end_time?: string
-          type?: 'raid' | 'meeting' | 'event' | 'personal'
+          type?: 'raid'
           participants?: string[]
           is_completed?: boolean
           created_at?: string
