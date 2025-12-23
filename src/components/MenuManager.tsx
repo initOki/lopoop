@@ -36,6 +36,7 @@ export function MenuManager({ userId }: MenuManagerProps) {
     updateMenu,
     deleteMenu,
     reorderMenus,
+    refreshMenus,
     syncOfflineActions,
   } = useCustomMenus(userId)
 
@@ -101,7 +102,11 @@ export function MenuManager({ userId }: MenuManagerProps) {
 
     setIsDeleting(true)
     try {
-      await deleteMenu(deletingMenu.id)
+      const success = await deleteMenu(deletingMenu.id)
+      if (success) {
+        // 삭제 성공 후 리스트 새로고침 (실시간 구독이 작동하지 않을 경우를 대비)
+        await refreshMenus()
+      }
       setDeletingMenu(null)
     } catch (err) {
       console.error('메뉴 삭제 실패:', err)

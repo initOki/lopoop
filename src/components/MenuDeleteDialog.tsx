@@ -43,33 +43,6 @@ export function MenuDeleteDialog({
     }
   }
 
-  // 삭제 영향 분석
-  const getDeletionImpact = () => {
-    const impacts = []
-
-    if (menu.type === MenuType.PERSONAL) {
-      impacts.push('개인 메뉴는 다른 사용자에게 공개되지 않습니다')
-      impacts.push('개인 메뉴 내 공지사항과 스케줄이 삭제됩니다')
-    }
-
-    impacts.push('네비게이션에서 메뉴 항목이 제거됩니다')
-    impacts.push('30일 후 완전히 삭제되며, 그 전까지는 복구 가능합니다')
-
-    return impacts
-  }
-
-  const handleConfirm = async () => {
-    if (confirmText !== menu.name) {
-      return
-    }
-
-    try {
-      await onConfirm()
-    } catch (error) {
-      console.error('메뉴 삭제 실패:', error)
-    }
-  }
-
   const isConfirmValid = confirmText === menu.name
 
   return (
@@ -122,19 +95,6 @@ export function MenuDeleteDialog({
             </div>
           </div>
 
-          {/* 삭제 영향 목록 */}
-          <div className="space-y-2">
-            {getDeletionImpact().map((impact, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-2 text-sm text-gray-600"
-              >
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 flex-shrink-0" />
-                <div>{impact}</div>
-              </div>
-            ))}
-          </div>
-
           {/* 세부 정보 토글 */}
           <button
             onClick={() => setShowDetails(!showDetails)}
@@ -182,7 +142,7 @@ export function MenuDeleteDialog({
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="메뉴 이름을 입력하세요"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="text-gray-700 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
               disabled={isDeleting}
             />
           </div>

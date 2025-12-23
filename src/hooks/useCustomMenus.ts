@@ -1,21 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { 
-  getUserCustomMenus, 
-  createCustomMenu, 
-  updateCustomMenu, 
+import {
+  getUserCustomMenus,
+  createCustomMenu,
+  updateCustomMenu,
   deleteCustomMenu,
   reorderCustomMenus,
   processOfflineMenuActions,
-  hasPendingOfflineActions
+  hasPendingOfflineActions,
 } from '../lib/custom-menu-utils'
-import { 
-  useNetworkState
-} from '../lib/network-error-handler'
-import type { 
-  CustomMenu, 
-  CustomMenuInsert, 
-  CustomMenuUpdate 
+import { useNetworkState } from '../lib/network-error-handler'
+import type {
+  CustomMenu,
+  CustomMenuInsert,
+  CustomMenuUpdate,
 } from '../types/custom-menu'
 
 interface UseCustomMenusReturn {
@@ -26,9 +24,14 @@ interface UseCustomMenusReturn {
   isConnected: boolean
   hasPendingActions: boolean
   createMenu: (menuData: CustomMenuInsert) => Promise<CustomMenu | null>
-  updateMenu: (menuId: string, updates: CustomMenuUpdate) => Promise<CustomMenu | null>
+  updateMenu: (
+    menuId: string,
+    updates: CustomMenuUpdate,
+  ) => Promise<CustomMenu | null>
   deleteMenu: (menuId: string) => Promise<boolean>
-  reorderMenus: (menuOrders: { id: string; order: number }[]) => Promise<boolean>
+  reorderMenus: (
+    menuOrders: { id: string; order: number }[],
+  ) => Promise<boolean>
   refreshMenus: () => Promise<void>
   syncOfflineActions: () => Promise<{ processed: number; failed: number }>
 }
@@ -42,7 +45,7 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasPendingActions, setHasPendingActions] = useState(false)
-  
+
   // Monitor network state
   const networkState = useNetworkState()
 
@@ -78,18 +81,24 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
     try {
       const result = await processOfflineMenuActions(userId)
       checkPendingActions()
-      
+
       // Refresh menus after processing offline actions
       if (result.processed > 0) {
         await loadMenus()
       }
-      
+
       return result
     } catch (error) {
       console.error('Error processing offline actions:', error)
       return { processed: 0, failed: 0 }
     }
-  }, [userId, networkState.isConnected, hasPendingActions, loadMenus, checkPendingActions])
+  }, [
+    userId,
+    networkState.isConnected,
+    hasPendingActions,
+    loadMenus,
+    checkPendingActions,
+  ])
 
   // Set up real-time subscription
   useEffect(() => {
@@ -108,11 +117,11 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
           event: '*',
           schema: 'public',
           table: 'custom_menus',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}`,
         },
         (payload: any) => {
           console.log('Custom menu change detected:', payload)
-          
+
           switch (payload.eventType) {
             case 'INSERT':
               setMenus((prev: CustomMenu[]) => {
@@ -121,29 +130,47 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
                 if (prev.find((menu: CustomMenu) => menu.id === newMenu.id)) {
                   return prev
                 }
-                return [...prev, newMenu].sort((a: CustomMenu, b: CustomMenu) => a.menu_order - b.menu_order)
+                return [...prev, newMenu].sort(
+                  (a: CustomMenu, b: CustomMenu) => a.menu_order - b.menu_order,
+                )
               })
               break
-              
+
             case 'UPDATE':
-              setMenus((prev: CustomMenu[]) => 
-                prev.map((menu: CustomMenu) => 
-                  menu.id === payload.new.id 
-                    ? { ...menu, ...payload.new } as CustomMenu
-                    : menu
-                ).sort((a: CustomMenu, b: CustomMenu) => a.menu_order - b.menu_order)
+              setMenus((prev: CustomMenu[]) =>
+                prev
+                  .map((menu: CustomMenu) =>
+                    menu.id === payload.new.id
+                      ? ({ ...menu, ...payload.new } as CustomMenu)
+                      : menu,
+                  )
+                  .sort(
+                    (a: CustomMenu, b: CustomMenu) =>
+                      a.menu_order - b.menu_order,
+                  ),
               )
               break
-              
+
             case 'DELETE':
-              setMenus((prev: CustomMenu[]) => 
-                prev.filter((menu: CustomMenu) => menu.id !== payload.old.id)
+              setMenus((prev: CustomMenu[]) =>
+                prev.filter((menu: CustomMenu) => menu.id !== payload.old.id),
               )
               break
           }
-        }
+        },
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Custom menus subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log(
+            'Successfully subscribed to custom menus realtime updates',
+          )
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to custom menus realtime updates')
+        } else if (status === 'CLOSED') {
+          console.warn('Custom menus realtime connection closed')
+        }
+      })
 
     // Cleanup subscription on unmount
     return () => {
@@ -160,84 +187,100 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
   }, [networkState.isConnected, hasPendingActions, syncOfflineActions])
 
   // Create a new menu
-  const createMenu = useCallback(async (menuData: CustomMenuInsert): Promise<CustomMenu | null> => {
-    try {
-      setError(null)
-      const newMenu = await createCustomMenu(menuData)
-      checkPendingActions()
-      // Real-time subscription will handle state update if online
-      return newMenu
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '메뉴 생성에 실패했습니다'
-      setError(errorMessage)
-      checkPendingActions()
-      throw err
-    }
-  }, [checkPendingActions])
+  const createMenu = useCallback(
+    async (menuData: CustomMenuInsert): Promise<CustomMenu | null> => {
+      try {
+        setError(null)
+        const newMenu = await createCustomMenu(menuData)
+        checkPendingActions()
+        // Real-time subscription will handle state update if online
+        return newMenu
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '메뉴 생성에 실패했습니다'
+        setError(errorMessage)
+        checkPendingActions()
+        throw err
+      }
+    },
+    [checkPendingActions],
+  )
 
   // Update an existing menu
-  const updateMenu = useCallback(async (
-    menuId: string, 
-    updates: CustomMenuUpdate
-  ): Promise<CustomMenu | null> => {
-    try {
-      setError(null)
-      const updatedMenu = await updateCustomMenu(menuId, updates, userId)
-      checkPendingActions()
-      // Real-time subscription will handle state update if online
-      return updatedMenu
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '메뉴 업데이트에 실패했습니다'
-      setError(errorMessage)
-      checkPendingActions()
-      throw err
-    }
-  }, [userId, checkPendingActions])
+  const updateMenu = useCallback(
+    async (
+      menuId: string,
+      updates: CustomMenuUpdate,
+    ): Promise<CustomMenu | null> => {
+      try {
+        setError(null)
+        const updatedMenu = await updateCustomMenu(menuId, updates, userId)
+        checkPendingActions()
+        // Real-time subscription will handle state update if online
+        return updatedMenu
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '메뉴 업데이트에 실패했습니다'
+        setError(errorMessage)
+        checkPendingActions()
+        throw err
+      }
+    },
+    [userId, checkPendingActions],
+  )
 
   // Delete a menu
-  const deleteMenu = useCallback(async (menuId: string): Promise<boolean> => {
-    try {
-      setError(null)
-      const success = await deleteCustomMenu(menuId, userId)
-      checkPendingActions()
-      // Real-time subscription will handle state update if online
-      return success
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '메뉴 삭제에 실패했습니다'
-      setError(errorMessage)
-      checkPendingActions()
-      throw err
-    }
-  }, [userId, checkPendingActions])
+  const deleteMenu = useCallback(
+    async (menuId: string): Promise<boolean> => {
+      try {
+        setError(null)
+        const success = await deleteCustomMenu(menuId, userId)
+        checkPendingActions()
+        // Real-time subscription will handle state update if online
+        return success
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '메뉴 삭제에 실패했습니다'
+        setError(errorMessage)
+        checkPendingActions()
+        throw err
+      }
+    },
+    [userId, checkPendingActions],
+  )
 
   // Reorder menus
-  const reorderMenus = useCallback(async (
-    menuOrders: { id: string; order: number }[]
-  ): Promise<boolean> => {
-    try {
-      setError(null)
-      const success = await reorderCustomMenus(userId, menuOrders)
-      
-      if (success || !networkState.isConnected) {
-        // Optimistically update local state for immediate feedback
-        setMenus((prev: CustomMenu[]) => {
-          const updated = prev.map((menu: CustomMenu) => {
-            const newOrder = menuOrders.find(order => order.id === menu.id)
-            return newOrder ? { ...menu, menu_order: newOrder.order } : menu
+  const reorderMenus = useCallback(
+    async (menuOrders: { id: string; order: number }[]): Promise<boolean> => {
+      try {
+        setError(null)
+        const success = await reorderCustomMenus(userId, menuOrders)
+
+        if (success || !networkState.isConnected) {
+          // Optimistically update local state for immediate feedback
+          setMenus((prev: CustomMenu[]) => {
+            const updated = prev.map((menu: CustomMenu) => {
+              const newOrder = menuOrders.find((order) => order.id === menu.id)
+              return newOrder ? { ...menu, menu_order: newOrder.order } : menu
+            })
+            return updated.sort(
+              (a: CustomMenu, b: CustomMenu) => a.menu_order - b.menu_order,
+            )
           })
-          return updated.sort((a: CustomMenu, b: CustomMenu) => a.menu_order - b.menu_order)
-        })
+        }
+
+        checkPendingActions()
+        return success
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '메뉴 순서 변경에 실패했습니다'
+        setError(errorMessage)
+        checkPendingActions()
+        return false
       }
-      
-      checkPendingActions()
-      return success
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '메뉴 순서 변경에 실패했습니다'
-      setError(errorMessage)
-      checkPendingActions()
-      return false
-    }
-  }, [userId, networkState.isConnected, checkPendingActions])
+    },
+    [userId, networkState.isConnected, checkPendingActions],
+  )
 
   // Refresh menus manually
   const refreshMenus = useCallback(async () => {
@@ -256,6 +299,6 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
     deleteMenu,
     reorderMenus,
     refreshMenus,
-    syncOfflineActions
+    syncOfflineActions,
   }
 }
