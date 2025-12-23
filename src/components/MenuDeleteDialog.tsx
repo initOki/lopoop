@@ -26,7 +26,7 @@ export function MenuDeleteDialog({
   // 메뉴 타입별 한국어 이름
   const getMenuTypeName = (type: string) => {
     switch (type as MenuType) {
-      case MenuType.GROUP:
+      case MenuType.PERSONAL:
         return '그룹'
       default:
         return '메뉴'
@@ -36,7 +36,7 @@ export function MenuDeleteDialog({
   // 메뉴 타입별 아이콘
   const getMenuTypeIcon = (type: string) => {
     switch (type as MenuType) {
-      case MenuType.GROUP:
+      case MenuType.PERSONAL:
         return '👥'
       default:
         return '📋'
@@ -47,9 +47,9 @@ export function MenuDeleteDialog({
   const getDeletionImpact = () => {
     const impacts = []
 
-    if (menu.type === MenuType.GROUP) {
-      impacts.push('그룹 멤버들이 이 메뉴에 접근할 수 없게 됩니다')
-      impacts.push('그룹 내 공지사항과 스케줄이 삭제됩니다')
+    if (menu.type === MenuType.PERSONAL) {
+      impacts.push('개인 메뉴는 다른 사용자에게 공개되지 않습니다')
+      impacts.push('개인 메뉴 내 공지사항과 스케줄이 삭제됩니다')
     }
 
     impacts.push('네비게이션에서 메뉴 항목이 제거됩니다')
@@ -160,9 +160,9 @@ export function MenuDeleteDialog({
               <div>
                 <span className="font-medium">순서:</span> {menu.menu_order}
               </div>
-              {menu.type === MenuType.GROUP && (
+              {menu.type === MenuType.PERSONAL && (
                 <div>
-                  <span className="font-medium">그룹 타입:</span> 다른
+                  <span className="font-medium">개인 메뉴:</span> 다른
                   사용자에게 영향을 줄 수 있음
                 </div>
               )}

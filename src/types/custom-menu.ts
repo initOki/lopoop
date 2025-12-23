@@ -2,7 +2,7 @@ import type { Tables, TablesInsert, TablesUpdate } from './database'
 
 // Menu types enum
 export enum MenuType {
-  GROUP = 'group',
+  PERSONAL = 'personal',
 }
 
 // Base menu configuration interface
@@ -186,7 +186,7 @@ export interface MenuLimits {
 
 // Default configurations for each menu type
 export const DEFAULT_MENU_CONFIGS: Record<MenuType, MenuConfig> = {
-  [MenuType.GROUP]: {
+  [MenuType.PERSONAL]: {
     description: '',
     isPrivate: false,
     allowMemberInvite: true,

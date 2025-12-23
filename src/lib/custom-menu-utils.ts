@@ -399,7 +399,7 @@ export async function deleteCustomMenu(
     const impact = await checkMenuDeletionImpact(menuId)
 
     // 그룹 메뉴이고 다른 사용자에게 영향을 주는 경우 알림
-    if (menu.type === MenuType.GROUP && impact.hasMembers) {
+    if (menu.type === MenuType.PERSONAL && impact.hasMembers) {
       await notifyAffectedUsers(menu.name, impact.affectedUsers, userId)
     }
 

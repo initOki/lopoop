@@ -19,7 +19,7 @@ import type { CustomMenu, MenuType } from '../types/custom-menu'
 // Menu type icon mapping
 const getMenuTypeIcon = (type: MenuType) => {
   switch (type) {
-    case 'group':
+    case 'personal':
       return Users
     default:
       return FileText

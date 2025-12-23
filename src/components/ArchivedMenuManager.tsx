@@ -30,8 +30,8 @@ export function ArchivedMenuManager({
   // 메뉴 타입별 한국어 이름
   const getMenuTypeName = (type: string) => {
     switch (type as MenuType) {
-      case MenuType.GROUP:
-        return '그룹'
+      case MenuType.PERSONAL:
+        return '개인'
       default:
         return '메뉴'
     }
@@ -40,8 +40,8 @@ export function ArchivedMenuManager({
   // 메뉴 타입별 아이콘
   const getMenuTypeIcon = (type: string) => {
     switch (type as MenuType) {
-      case MenuType.GROUP:
-        return '👥'
+      case MenuType.PERSONAL:
+        return '👤'
       default:
         return '📋'
     }

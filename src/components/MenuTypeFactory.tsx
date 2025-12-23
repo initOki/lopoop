@@ -7,25 +7,23 @@ import type {
 import { MenuType } from '../types/custom-menu'
 
 // Import menu type components
-import { GroupMenuComponent } from './menu-types/GroupMenuComponent'
+import { PersonalMenuComponent } from './menu-types/PersonalMenuComponent'
 
 // Menu type configuration registry
 const MENU_TYPE_CONFIGS: Record<MenuType, MenuTypeConfig> = {
-  [MenuType.GROUP]: {
-    component: GroupMenuComponent,
+  [MenuType.PERSONAL]: {
+    component: PersonalMenuComponent,
     defaultConfig: {
       description: '',
-      isPrivate: false,
-      allowMemberInvite: true,
+      defaultTab: 'debt',
       features: {
-        announcements: true,
+        debtManagement: true,
         scheduling: true,
-        fileSharing: false,
-        chat: true,
+        setting: true,
       },
     },
     icon: Users,
-    features: ['멤버 관리', '공지사항', '그룹 스케줄링', '채팅'],
+    features: ['빚 관리', '스케줄'],
   },
 }
 

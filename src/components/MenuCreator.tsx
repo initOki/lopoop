@@ -21,8 +21,8 @@ export function MenuCreator({
 }: MenuCreatorProps) {
   const [formData, setFormData] = useState<MenuFormData>({
     name: '',
-    type: MenuType.GROUP,
-    config: DEFAULT_MENU_CONFIGS[MenuType.GROUP],
+    type: MenuType.PERSONAL,
+    config: DEFAULT_MENU_CONFIGS[MenuType.PERSONAL],
   })
 
   const [existingNames, setExistingNames] = useState<string[]>([])

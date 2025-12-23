@@ -51,8 +51,8 @@ export function MenuManager({ userId }: MenuManagerProps) {
   // 메뉴 타입별 한국어 이름
   const getMenuTypeName = (type: MenuType) => {
     switch (type) {
-      case MenuType.GROUP:
-        return '그룹'
+      case MenuType.PERSONAL:
+        return '개인'
       default:
         return '메뉴'
     }

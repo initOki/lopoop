@@ -6,13 +6,13 @@ export enum MenuPermission {
   VIEW = 'view',
   EDIT = 'edit',
   DELETE = 'delete',
-  MANAGE_MEMBERS = 'manage_members'
+  MANAGE_MEMBERS = 'manage_members',
 }
 
 export enum MemberRole {
   OWNER = 'owner',
   ADMIN = 'admin',
-  MEMBER = 'member'
+  MEMBER = 'member',
 }
 
 export interface MenuAccessInfo {
@@ -29,8 +29,8 @@ export interface MenuAccessInfo {
  * 요구사항 7.3: 메뉴 접근 권한 확인
  */
 export async function checkMenuAccess(
-  menuId: string, 
-  userId: string
+  menuId: string,
+  userId: string,
 ): Promise<MenuAccessInfo> {
   try {
     // 메뉴 정보 가져오기
@@ -46,7 +46,7 @@ export async function checkMenuAccess(
         canEdit: false,
         canDelete: false,
         canManageMembers: false,
-        reason: '메뉴를 찾을 수 없습니다'
+        reason: '메뉴를 찾을 수 없습니다',
       }
     }
 
@@ -57,18 +57,18 @@ export async function checkMenuAccess(
         canEdit: true,
         canDelete: true,
         canManageMembers: true,
-        role: MemberRole.OWNER
+        role: MemberRole.OWNER,
       }
     }
 
     // 그룹 메뉴가 아닌 경우 소유자만 접근 가능
-    if (menu.type !== MenuType.GROUP) {
+    if (menu.type !== MenuType.PERSONAL) {
       return {
         canView: false,
         canEdit: false,
         canDelete: false,
         canManageMembers: false,
-        reason: '개인 메뉴는 소유자만 접근할 수 있습니다'
+        reason: '개인 메뉴는 소유자만 접근할 수 있습니다',
       }
     }
 
@@ -91,7 +91,7 @@ export async function checkMenuAccess(
           canEdit: false,
           canDelete: false,
           canManageMembers: false,
-          reason: '비공개 그룹입니다'
+          reason: '비공개 그룹입니다',
         }
       }
 
@@ -101,13 +101,13 @@ export async function checkMenuAccess(
         canEdit: false,
         canDelete: false,
         canManageMembers: false,
-        reason: '그룹 멤버가 아닙니다'
+        reason: '그룹 멤버가 아닙니다',
       }
     }
 
     // 멤버 역할에 따른 권한 설정
     const role = membership.role as MemberRole
-    
+
     switch (role) {
       case MemberRole.ADMIN:
         return {
@@ -115,25 +115,25 @@ export async function checkMenuAccess(
           canEdit: true,
           canDelete: false, // 관리자는 삭제 불가
           canManageMembers: true,
-          role
+          role,
         }
-      
+
       case MemberRole.MEMBER:
         return {
           canView: true,
           canEdit: false,
           canDelete: false,
           canManageMembers: false,
-          role
+          role,
         }
-      
+
       default:
         return {
           canView: true,
           canEdit: false,
           canDelete: false,
           canManageMembers: false,
-          role
+          role,
         }
     }
   } catch (error) {
@@ -143,7 +143,7 @@ export async function checkMenuAccess(
       canEdit: false,
       canDelete: false,
       canManageMembers: false,
-      reason: '권한 확인 중 오류가 발생했습니다'
+      reason: '권한 확인 중 오류가 발생했습니다',
     }
   }
 }
@@ -152,7 +152,9 @@ export async function checkMenuAccess(
  * 사용자가 볼 수 있는 메뉴 목록을 필터링합니다
  * 요구사항 7.3: 동적 가시성 업데이트
  */
-export async function getVisibleMenusForUser(userId: string): Promise<CustomMenu[]> {
+export async function getVisibleMenusForUser(
+  userId: string,
+): Promise<CustomMenu[]> {
   try {
     // 1. 사용자가 소유한 메뉴
     const { data: ownedMenus, error: ownedError } = await supabase
@@ -169,10 +171,12 @@ export async function getVisibleMenusForUser(userId: string): Promise<CustomMenu
     // 2. 사용자가 멤버인 그룹 메뉴
     const { data: memberMenus, error: memberError } = await supabase
       .from('menu_members')
-      .select(`
+      .select(
+        `
         menu_id,
         custom_menus (*)
-      `)
+      `,
+      )
       .eq('user_id', userId)
 
     if (memberError) {
@@ -181,8 +185,8 @@ export async function getVisibleMenusForUser(userId: string): Promise<CustomMenu
     }
 
     // 3. 공개 그룹 메뉴 (사용자가 멤버가 아닌 것들)
-    const memberMenuIds = memberMenus?.map(m => m.menu_id) || []
-    const ownedMenuIds = ownedMenus?.map(m => m.id) || []
+    const memberMenuIds = memberMenus?.map((m) => m.menu_id) || []
+    const ownedMenuIds = ownedMenus?.map((m) => m.id) || []
     const excludeIds = [...memberMenuIds, ...ownedMenuIds]
 
     let publicGroupMenus: CustomMenu[] = []
@@ -190,13 +194,13 @@ export async function getVisibleMenusForUser(userId: string): Promise<CustomMenu
       const { data: publicMenus, error: publicError } = await supabase
         .from('custom_menus')
         .select('*')
-        .eq('type', MenuType.GROUP)
+        .eq('type', MenuType.PERSONAL)
         .not('id', 'in', `(${excludeIds.join(',')})`)
         .order('menu_order', { ascending: true })
 
       if (!publicError && publicMenus) {
         // 비공개가 아닌 메뉴만 필터링
-        publicGroupMenus = publicMenus.filter(menu => {
+        publicGroupMenus = publicMenus.filter((menu) => {
           const config = menu.config as any
           return !config?.isPrivate
         })
@@ -206,13 +210,13 @@ export async function getVisibleMenusForUser(userId: string): Promise<CustomMenu
     // 모든 메뉴 합치기
     const allMenus = [
       ...(ownedMenus || []),
-      ...(memberMenus?.map(m => m.custom_menus).filter(Boolean) || []),
-      ...publicGroupMenus
+      ...(memberMenus?.map((m) => m.custom_menus).filter(Boolean) || []),
+      ...publicGroupMenus,
     ]
 
     // 중복 제거 및 정렬
     const uniqueMenus = allMenus.reduce((acc, menu) => {
-      if (menu && !acc.find(m => m.id === menu.id)) {
+      if (menu && !acc.find((m) => m.id === menu.id)) {
         acc.push(menu)
       }
       return acc
@@ -232,7 +236,7 @@ export async function updateMemberRole(
   menuId: string,
   targetUserId: string,
   newRole: MemberRole,
-  requestingUserId: string
+  requestingUserId: string,
 ): Promise<boolean> {
   try {
     // 요청자의 권한 확인
@@ -266,7 +270,7 @@ export async function updateMemberRole(
 export async function updateMenuPrivacy(
   menuId: string,
   isPrivate: boolean,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   try {
     // 권한 확인
@@ -288,7 +292,7 @@ export async function updateMenuPrivacy(
 
     const updatedConfig = {
       ...(menu.config as Record<string, any>),
-      isPrivate
+      isPrivate,
     }
 
     const { error: updateError } = await supabase
@@ -314,10 +318,10 @@ export async function updateMenuPrivacy(
 export async function hasMenuAccessChanged(
   menuId: string,
   userId: string,
-  lastKnownAccess: MenuAccessInfo
+  lastKnownAccess: MenuAccessInfo,
 ): Promise<boolean> {
   const currentAccess = await checkMenuAccess(menuId, userId)
-  
+
   return (
     currentAccess.canView !== lastKnownAccess.canView ||
     currentAccess.canEdit !== lastKnownAccess.canEdit ||
