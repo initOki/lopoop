@@ -63,6 +63,25 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
   const [addCharacterKeyword, setAddCharacterKeyword] = useState('')
   const userId = menu.user_id
 
+  // 주간 골드 계산
+  const calculateWeeklyGold = () => {
+    const allRaids = Object.values(characterRaids).flat()
+
+    // 클리어한 레이드 중 골드 수령 가능한 레이드의 총 골드
+    const earnedGold = allRaids
+      .filter((raid) => raid.is_cleared && raid.can_receive_gold)
+      .reduce((sum, raid) => sum + raid.clear_gold, 0)
+
+    // 골드 수령 가능한 모든 레이드의 총 골드
+    const totalGold = allRaids
+      .filter((raid) => raid.can_receive_gold)
+      .reduce((sum, raid) => sum + raid.clear_gold, 0)
+
+    return { earnedGold, totalGold }
+  }
+
+  const { earnedGold, totalGold } = calculateWeeklyGold()
+
   // 등록된 캐릭터 불러오기
   useEffect(() => {
     fetchCharacters()
@@ -488,6 +507,56 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
               {DEFAULT_CHARACTERS}개 캐릭터로 교체됩니다.
             </p>
           </div>
+
+          {/* 주간 골드 요약 */}
+          {characters.length > 0 && (
+            <div className="bg-linear-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <Coins className="w-6 h-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      주간 골드 획득량
+                    </h3>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-bold text-yellow-500">
+                        {earnedGold.toLocaleString()}
+                      </span>
+                      <span className="text-lg text-muted-foreground">/</span>
+                      <span className="text-lg font-semibold text-foreground">
+                        {totalGold.toLocaleString()}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        골드
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground mb-1">
+                    진행률
+                  </div>
+                  <div className="text-2xl font-bold text-primary">
+                    {totalGold > 0
+                      ? Math.round((earnedGold / totalGold) * 100)
+                      : 0}
+                    %
+                  </div>
+                </div>
+              </div>
+              {/* 프로그레스 바 */}
+              <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-linear-to-r from-yellow-500 to-amber-500 transition-all duration-500"
+                  style={{
+                    width: `${totalGold > 0 ? (earnedGold / totalGold) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* 캐릭터 목록 */}
           <div>
