@@ -9,6 +9,7 @@ import {
   Trash2,
   User,
   UserPlus,
+  Clock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -27,6 +28,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog'
+import {
+  shouldResetWeekly,
+  resetWeeklyRaids,
+  getNextWednesday6AM,
+} from '../../lib/weekly-reset'
 import type { MenuComponentProps } from '../../types/custom-menu'
 
 const MAX_CHARACTERS = 20
@@ -103,6 +109,15 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
   const fetchCharacters = async () => {
     try {
       setIsLoading(true)
+
+      // 1. 주간 초기화 확인 및 실행
+      const needsReset = await shouldResetWeekly(userId, menuId)
+      if (needsReset) {
+        await resetWeeklyRaids(userId, menuId)
+        toast.success('주간 레이드가 초기화되었습니다! (매주 수요일 오전 6시)')
+      }
+
+      // 2. 캐릭터 목록 불러오기
       const { data, error } = await supabase
         .from('personal_characters')
         .select('*')
@@ -113,7 +128,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
       if (error) throw error
       setCharacters(data || [])
 
-      // 각 캐릭터의 레이드 정보 불러오기
+      // 3. 각 캐릭터의 레이드 정보 불러오기
       if (data && data.length > 0) {
         await fetchAllCharacterRaids(data.map((c) => c.id))
       }
@@ -572,11 +587,26 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
               {/* 프로그레스 바 */}
               <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-linear-to-r from-yellow-500 to-amber-500 transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 transition-all duration-500"
                   style={{
                     width: `${totalGold > 0 ? (earnedGold / totalGold) * 100 : 0}%`,
                   }}
                 />
+              </div>
+              {/* 다음 초기화 시간 */}
+              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>
+                  다음 초기화:{' '}
+                  {getNextWednesday6AM().toLocaleString('ko-KR', {
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    timeZone: 'Asia/Seoul',
+                  })}
+                </span>
               </div>
             </div>
           )}

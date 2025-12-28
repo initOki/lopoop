@@ -402,6 +402,33 @@ export type Database = {
           },
         ]
       }
+      personal_character_raids_reset: {
+        Row: {
+          id: string
+          user_id: string
+          menu_id: string
+          last_reset_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          menu_id: string
+          last_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          menu_id?: string
+          last_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       schedules: {
         Row: {
           created_at: string
