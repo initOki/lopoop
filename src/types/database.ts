@@ -292,6 +292,95 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_characters: {
+        Row: {
+          id: string
+          user_id: string
+          character_name: string
+          character_class: string
+          item_level: number
+          server_name: string
+          combat_power: string | null
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          character_name: string
+          character_class: string
+          item_level: number
+          server_name: string
+          combat_power?: string | null
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          character_name?: string
+          character_class?: string
+          item_level?: number
+          server_name?: string
+          combat_power?: string | null
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      personal_character_raids: {
+        Row: {
+          id: string
+          user_id: string
+          character_id: string
+          raid_name: string
+          min_item_level: number
+          is_cleared: boolean
+          clear_gold: number
+          can_receive_gold: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          character_id: string
+          raid_name: string
+          min_item_level: number
+          is_cleared?: boolean
+          clear_gold?: number
+          can_receive_gold?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          character_id?: string
+          raid_name?: string
+          min_item_level?: number
+          is_cleared?: boolean
+          clear_gold?: number
+          can_receive_gold?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_character_raids_character_id_fkey"
+            columns: ["character_id"]
+            isOneToMany: false
+            referencedRelation: "personal_characters"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       schedules: {
         Row: {
           created_at: string

@@ -13,7 +13,8 @@
     "migrate:personal": "ts-node scripts/apply-personal-migration.ts",
     "migrate:archive": "ts-node scripts/apply-archive-migration.ts",
     "migrate:custom": "ts-node scripts/apply-migration.ts",
-    "migrate:menu-type": "ts-node scripts/apply-menu-type-migration.ts"
+    "migrate:menu-type": "ts-node scripts/apply-menu-type-migration.ts",
+    "migrate:personal-characters": "ts-node scripts/apply-personal-characters-migration.ts"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
