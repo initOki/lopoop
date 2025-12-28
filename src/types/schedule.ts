@@ -5,8 +5,8 @@ export type ScheduleRow = Database['public']['Tables']['schedules']['Row']
 export type RaidSchedule = {
   id: number
   raidName: string
-  slots: (string | null)[]
-  combatPowers: (number | null)[]
+  slots: Array<string | null>
+  combatPowers: Array<number | null>
   isCompleted: boolean
   createdAt: Date
   averageStats?: number

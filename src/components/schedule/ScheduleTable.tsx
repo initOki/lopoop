@@ -1,15 +1,15 @@
-import { Check, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Trash2 } from 'lucide-react'
 import SlotCell from './SlotCell'
-import type { RaidSchedule, SortField, ScheduleSort } from '@/types/schedule'
+import type { RaidSchedule, ScheduleSort, SortField } from '@/types/schedule'
 import type { ExpeditionCharacter } from '@/types/loa'
 
 type Props = {
-  schedules: RaidSchedule[]
+  schedules: Array<RaidSchedule>
   isLoading: boolean
   sort: ScheduleSort
   editingScheduleId: number | null
   editingSlotIndex: number | null
-  editCharacters: ExpeditionCharacter[]
+  editCharacters: Array<ExpeditionCharacter>
   selectedEditCharacter: ExpeditionCharacter | null
   onSort: (field: SortField) => void
   onToggleComplete: (id: number, currentState: boolean) => void
@@ -18,7 +18,7 @@ type Props = {
   onCancelEdit: () => void
   onUpdateSlot: (scheduleId: number, slotIndex: number) => void
   onClearSlot: (scheduleId: number, slotIndex: number) => void
-  onCharacterSearch: (chars: ExpeditionCharacter[]) => void
+  onCharacterSearch: (chars: Array<ExpeditionCharacter>) => void
   onCharacterSelect: (char: ExpeditionCharacter | null) => void
   getCharacterUsageCount: (
     name: string,

@@ -1,11 +1,11 @@
 import { RefreshCw } from 'lucide-react'
+import ScheduleFiltersComponent from './schedule/ScheduleFilters'
+import ScheduleTable from './schedule/ScheduleTable'
+import RaidCreator from './schedule/RaidCreator'
 import { useSchedules } from '@/hooks/useSchedules'
 import { useScheduleFilters } from '@/hooks/useScheduleFilters'
 import { useSlotEditor } from '@/hooks/useSlotEditor'
 import { useRaidCreator } from '@/hooks/useRaidCreator'
-import ScheduleFiltersComponent from './schedule/ScheduleFilters'
-import ScheduleTable from './schedule/ScheduleTable'
-import RaidCreator from './schedule/RaidCreator'
 
 export default function RaidSchedulePage() {
   const {
@@ -53,7 +53,7 @@ export default function RaidSchedulePage() {
   const selectedRaidInfo = getSelectedRaidInfo() ?? null
   const { invalidSlots } = checkItemLevelRequirement()
 
-  const handleCharacterSearch = (chars: any[]) => {
+  const handleCharacterSearch = (chars: Array<any>) => {
     setEditCharacters(chars)
     if (chars.length > 0) {
       // 첫 번째 캐릭터가 3회 이상 등록되어 있으면 선택 가능한 첫 캐릭터 찾기

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import type { ExpeditionCharacter } from '@/types/loa'
 import {
-  fetchCharacterSiblings,
   fetchCharacterProfile,
+  fetchCharacterSiblings,
 } from '@/features/characterSearch/loaApi'
 
 type Props = {
   expeditionIndex: number
-  onResult: (chars: ExpeditionCharacter[]) => void
+  onResult: (chars: Array<ExpeditionCharacter>) => void
   compact?: boolean
 }
 

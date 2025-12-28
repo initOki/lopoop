@@ -23,17 +23,17 @@ export interface GroupMenuConfig extends MenuConfig {
 
 export interface DashboardMenuConfig extends MenuConfig {
   layout: 'grid' | 'list' | 'custom'
-  widgets: Widget[]
+  widgets: Array<Widget>
 }
 
 export interface ExternalLinkMenuConfig extends MenuConfig {
-  links: {
+  links: Array<{
     id: string
     name: string
     url: string
     description?: string
     icon?: string
-  }[]
+  }>
   layout: 'grid' | 'list'
 }
 
@@ -93,7 +93,7 @@ export interface MenuFormData {
 }
 
 export interface DynamicNavigationProps {
-  customMenus: CustomMenu[]
+  customMenus: Array<CustomMenu>
   onMenuClick: (menuId: string) => void
 }
 
@@ -114,12 +114,12 @@ export interface MenuTypeConfig {
   component: any // Component type
   defaultConfig: MenuConfig
   icon: any // Component type
-  features: string[]
+  features: Array<string>
 }
 
 export interface RealtimeMenuSyncProps {
   userId: string
-  onMenusUpdate: (menus: CustomMenu[]) => void
+  onMenusUpdate: (menus: Array<CustomMenu>) => void
 }
 
 export interface MenuSubscription {
@@ -167,15 +167,15 @@ export interface GroupSchedule {
   description?: string
   startTime: string
   endTime: string
-  participants: string[]
+  participants: Array<string>
   type: 'raid' | 'meeting' | 'event'
 }
 
 // Menu validation types
 export interface MenuValidationResult {
   isValid: boolean
-  errors: string[]
-  warnings: string[]
+  errors: Array<string>
+  warnings: Array<string>
 }
 
 export interface MenuLimits {

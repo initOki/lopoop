@@ -8,4 +8,3 @@ export interface Debt {
   createdAt: Date
   isPaid: boolean // 갚았는지 여부
 }
-

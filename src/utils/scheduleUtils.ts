@@ -1,4 +1,4 @@
-import type { SlotData, ScheduleRow, RaidSchedule } from '@/types/schedule'
+import type { RaidSchedule, ScheduleRow, SlotData } from '@/types/schedule'
 
 // 슬롯 데이터 파싱
 export function parseSlotData(slotText: string | null): SlotData {
@@ -102,7 +102,7 @@ export function getNextWednesday6AM(fromDate: Date): Date {
 
 // 파티 평균 전투력 계산
 export function calculateAverageStats(
-  selectedSlots: (any | null)[],
+  selectedSlots: Array<any | null>,
 ): number | null {
   const slotsWithStats = selectedSlots.filter(
     (slot) =>

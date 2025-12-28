@@ -1,5 +1,5 @@
-import { supabase } from './supabase'
 import { MenuType } from '../types/custom-menu'
+import { supabase } from './supabase'
 import type { CustomMenu } from '../types/custom-menu'
 
 export enum MenuPermission {
@@ -154,7 +154,7 @@ export async function checkMenuAccess(
  */
 export async function getVisibleMenusForUser(
   userId: string,
-): Promise<CustomMenu[]> {
+): Promise<Array<CustomMenu>> {
   try {
     // 1. 사용자가 소유한 메뉴
     const { data: ownedMenus, error: ownedError } = await supabase
@@ -189,7 +189,7 @@ export async function getVisibleMenusForUser(
     const ownedMenuIds = ownedMenus?.map((m) => m.id) || []
     const excludeIds = [...memberMenuIds, ...ownedMenuIds]
 
-    let publicGroupMenus: CustomMenu[] = []
+    let publicGroupMenus: Array<CustomMenu> = []
     if (excludeIds.length > 0) {
       const { data: publicMenus, error: publicError } = await supabase
         .from('custom_menus')
@@ -220,7 +220,7 @@ export async function getVisibleMenusForUser(
         acc.push(menu)
       }
       return acc
-    }, [] as CustomMenu[])
+    }, [] as Array<CustomMenu>)
 
     return uniqueMenus.sort((a, b) => a.menu_order - b.menu_order)
   } catch (error) {

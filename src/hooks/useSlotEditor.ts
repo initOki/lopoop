@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { supabase } from '@/lib/supabase'
 import type { ExpeditionCharacter } from '@/types/loa'
 import type { RaidSchedule } from '@/types/schedule'
+import { supabase } from '@/lib/supabase'
 import { parseSlotData } from '@/utils/scheduleUtils'
 import { raidList } from '@/lib/raid-list'
 
-export function useSlotEditor(schedules: RaidSchedule[]) {
+export function useSlotEditor(schedules: Array<RaidSchedule>) {
   const [editingScheduleId, setEditingScheduleId] = useState<number | null>(
     null,
   )
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null)
-  const [editCharacters, setEditCharacters] = useState<ExpeditionCharacter[]>(
+  const [editCharacters, setEditCharacters] = useState<Array<ExpeditionCharacter>>(
     [],
   )
   const [selectedEditCharacter, setSelectedEditCharacter] =

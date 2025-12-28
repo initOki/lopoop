@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  getUserCustomMenus,
   createCustomMenu,
-  updateCustomMenu,
   deleteCustomMenu,
-  reorderCustomMenus,
-  processOfflineMenuActions,
+  getUserCustomMenus,
   hasPendingOfflineActions,
+  processOfflineMenuActions,
+  reorderCustomMenus,
+  updateCustomMenu,
 } from '../lib/custom-menu-utils'
 import { useNetworkState } from '../lib/network-error-handler'
 import type {
@@ -17,7 +17,7 @@ import type {
 } from '../types/custom-menu'
 
 interface UseCustomMenusReturn {
-  menus: CustomMenu[]
+  menus: Array<CustomMenu>
   loading: boolean
   error: string | null
   isOnline: boolean
@@ -30,7 +30,7 @@ interface UseCustomMenusReturn {
   ) => Promise<CustomMenu | null>
   deleteMenu: (menuId: string) => Promise<boolean>
   reorderMenus: (
-    menuOrders: { id: string; order: number }[],
+    menuOrders: Array<{ id: string; order: number }>,
   ) => Promise<boolean>
   refreshMenus: () => Promise<void>
   syncOfflineActions: () => Promise<{ processed: number; failed: number }>
@@ -41,7 +41,7 @@ interface UseCustomMenusReturn {
  * 요구사항 7.5: 네트워크 오류 처리 및 복구
  */
 export function useCustomMenus(userId: string): UseCustomMenusReturn {
-  const [menus, setMenus] = useState<CustomMenu[]>([])
+  const [menus, setMenus] = useState<Array<CustomMenu>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasPendingActions, setHasPendingActions] = useState(false)
@@ -124,7 +124,7 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
 
           switch (payload.eventType) {
             case 'INSERT':
-              setMenus((prev: CustomMenu[]) => {
+              setMenus((prev: Array<CustomMenu>) => {
                 const newMenu = payload.new as CustomMenu
                 // Check if menu already exists to avoid duplicates
                 if (prev.find((menu: CustomMenu) => menu.id === newMenu.id)) {
@@ -137,7 +137,7 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
               break
 
             case 'UPDATE':
-              setMenus((prev: CustomMenu[]) =>
+              setMenus((prev: Array<CustomMenu>) =>
                 prev
                   .map((menu: CustomMenu) =>
                     menu.id === payload.new.id
@@ -152,7 +152,7 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
               break
 
             case 'DELETE':
-              setMenus((prev: CustomMenu[]) =>
+              setMenus((prev: Array<CustomMenu>) =>
                 prev.filter((menu: CustomMenu) => menu.id !== payload.old.id),
               )
               break
@@ -251,14 +251,14 @@ export function useCustomMenus(userId: string): UseCustomMenusReturn {
 
   // Reorder menus
   const reorderMenus = useCallback(
-    async (menuOrders: { id: string; order: number }[]): Promise<boolean> => {
+    async (menuOrders: Array<{ id: string; order: number }>): Promise<boolean> => {
       try {
         setError(null)
         const success = await reorderCustomMenus(userId, menuOrders)
 
         if (success || !networkState.isConnected) {
           // Optimistically update local state for immediate feedback
-          setMenus((prev: CustomMenu[]) => {
+          setMenus((prev: Array<CustomMenu>) => {
             const updated = prev.map((menu: CustomMenu) => {
               const newOrder = menuOrders.find((order) => order.id === menu.id)
               return newOrder ? { ...menu, menu_order: newOrder.order } : menu

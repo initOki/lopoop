@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type {
   RaidSchedule,
   ScheduleFilters,
@@ -6,7 +6,7 @@ import type {
   SortField,
 } from '@/types/schedule'
 
-export function useScheduleFilters(schedules: RaidSchedule[]) {
+export function useScheduleFilters(schedules: Array<RaidSchedule>) {
   const [filters, setFilters] = useState<ScheduleFilters>({
     raidName: '',
     completed: 'all',

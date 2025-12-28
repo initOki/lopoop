@@ -1,17 +1,17 @@
-import { Plus, AlertCircle, Heart, Swords, X } from 'lucide-react'
-import RaidSetup from '@/features/raidSetup/RaidSetup'
-import { getClassRole } from '@/utils/classUtils'
+import { AlertCircle, Heart, Plus, Swords, X } from 'lucide-react'
 import type { ExpeditionCharacter } from '@/types/loa'
 import type { RaidInfo } from '@/lib/raid-list'
+import RaidSetup from '@/features/raidSetup/RaidSetup'
+import { getClassRole } from '@/utils/classUtils'
 
 type Props = {
   selectedRaid: string
-  selectedSlots: (ExpeditionCharacter | null)[]
+  selectedSlots: Array<ExpeditionCharacter | null>
   selectedRaidInfo: RaidInfo | null
   averageStats: number | null
-  invalidSlots: number[]
+  invalidSlots: Array<number>
   onRaidChange: (raid: string) => void
-  onSlotsChange: (slots: (ExpeditionCharacter | null)[]) => void
+  onSlotsChange: (slots: Array<ExpeditionCharacter | null>) => void
   onAddSchedule: () => void
   getCharacterUsageCount: (name: string) => number
   getSlotStatus: (

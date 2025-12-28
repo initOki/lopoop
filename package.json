@@ -17,7 +17,9 @@
     "migrate:personal-characters": "ts-node scripts/apply-personal-characters-migration.ts"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.87.1",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",

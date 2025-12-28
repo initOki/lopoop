@@ -73,7 +73,13 @@ const menuManagementRoute = createRoute({
   },
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, scheduleRoute, debtRoute, customMenuRoute, menuManagementRoute])
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  scheduleRoute,
+  debtRoute,
+  customMenuRoute,
+  menuManagementRoute,
+])
 
 const router = createRouter({
   routeTree,

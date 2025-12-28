@@ -1,24 +1,33 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  User,
-  Search,
-  Trash2,
-  Loader2,
   CheckCircle2,
   Circle,
-  Plus,
-  UserPlus,
   Coins,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+  User,
+  UserPlus,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { MenuComponentProps } from '../../types/custom-menu'
-import type { ExpeditionCharacter } from '../../types/loa'
 import {
-  fetchCharacterSiblings,
   fetchCharacterProfile,
+  fetchCharacterSiblings,
 } from '../../features/characterSearch/loaApi'
 import { supabase } from '../../lib/supabase'
 import { raidList } from '../../lib/raid-list'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog'
+import type { MenuComponentProps } from '../../types/custom-menu'
 
 const MAX_CHARACTERS = 20
 const DEFAULT_CHARACTERS = 6
@@ -26,6 +35,7 @@ const DEFAULT_CHARACTERS = 6
 interface PersonalCharacter {
   id: string
   user_id: string
+  menu_id: string
   character_name: string
   character_class: string
   item_level: number
@@ -54,14 +64,17 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [isAddingCharacter, setIsAddingCharacter] = useState(false)
-  const [characters, setCharacters] = useState<PersonalCharacter[]>([])
+  const [characters, setCharacters] = useState<Array<PersonalCharacter>>([])
   const [characterRaids, setCharacterRaids] = useState<
-    Record<string, PersonalCharacterRaid[]>
+    Record<string, Array<PersonalCharacterRaid>>
   >({})
   const [isLoading, setIsLoading] = useState(true)
   const [showAddCharacterInput, setShowAddCharacterInput] = useState(false)
   const [addCharacterKeyword, setAddCharacterKeyword] = useState('')
+  const [characterToDelete, setCharacterToDelete] =
+    useState<PersonalCharacter | null>(null)
   const userId = menu.user_id
+  const menuId = menu.id
 
   // 주간 골드 계산
   const calculateWeeklyGold = () => {
@@ -85,7 +98,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
   // 등록된 캐릭터 불러오기
   useEffect(() => {
     fetchCharacters()
-  }, [userId])
+  }, [userId, menuId])
 
   const fetchCharacters = async () => {
     try {
@@ -94,6 +107,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
         .from('personal_characters')
         .select('*')
         .eq('user_id', userId)
+        .eq('menu_id', menuId)
         .order('display_order', { ascending: true })
 
       if (error) throw error
@@ -112,7 +126,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
   }
 
   // 모든 캐릭터의 레이드 정보 불러오기
-  const fetchAllCharacterRaids = async (characterIds: string[]) => {
+  const fetchAllCharacterRaids = async (characterIds: Array<string>) => {
     try {
       const { data, error } = await supabase
         .from('personal_character_raids')
@@ -123,7 +137,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
       if (error) throw error
 
       // 캐릭터 ID별로 레이드 그룹화
-      const raidsByCharacter: Record<string, PersonalCharacterRaid[]> = {}
+      const raidsByCharacter: Record<string, Array<PersonalCharacterRaid>> = {}
       data?.forEach((raid) => {
         if (!raidsByCharacter[raid.character_id]) {
           raidsByCharacter[raid.character_id] = []
@@ -192,12 +206,14 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
         .from('personal_characters')
         .delete()
         .eq('user_id', userId)
+        .eq('menu_id', menuId)
 
       if (deleteError) throw deleteError
 
       // 5. 새로운 캐릭터 등록
       const charactersToInsert = topCharacters.map((char, index) => ({
         user_id: userId,
+        menu_id: menuId,
         character_name: char.CharacterName,
         character_class: char.CharacterClassName,
         item_level: char.ItemLevel,
@@ -215,7 +231,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
 
       // 6. 각 캐릭터에 레벨에 맞는 레이드 3개 자동 추가
       if (insertedCharacters) {
-        const raidsToInsert: any[] = []
+        const raidsToInsert: Array<any> = []
 
         insertedCharacters.forEach((char) => {
           const suitableRaids = findSuitableRaids(char.item_level)
@@ -307,6 +323,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
       // 5. 캐릭터 등록
       const characterToInsert = {
         user_id: userId,
+        menu_id: menuId,
         character_name: targetCharacter.CharacterName,
         character_class: targetCharacter.CharacterClassName,
         item_level: Number(targetCharacter.ItemAvgLevel.replace(/,/g, '')),
@@ -358,20 +375,26 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
     }
   }
 
-  // 캐릭터 삭제
-  const handleDeleteCharacter = async (characterId: string) => {
-    if (!confirm('이 캐릭터를 삭제하시겠습니까?')) return
+  // 캐릭터 삭제 확인
+  const confirmDeleteCharacter = (character: PersonalCharacter) => {
+    setCharacterToDelete(character)
+  }
+
+  // 캐릭터 삭제 실행
+  const handleDeleteCharacter = async () => {
+    if (!characterToDelete) return
 
     try {
       const { error } = await supabase
         .from('personal_characters')
         .delete()
-        .eq('id', characterId)
+        .eq('id', characterToDelete.id)
         .eq('user_id', userId)
 
       if (error) throw error
 
       toast.success('캐릭터가 삭제되었습니다.')
+      setCharacterToDelete(null)
       fetchCharacters()
     } catch (error) {
       console.error('Error deleting character:', error)
@@ -471,7 +494,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
       <div className="min-h-100 p-6">
         <div className="max-w-360 mx-auto space-y-6">
           {/* 검색 영역 */}
-          <div className="bg-muted/30 rounded-lg p-4">
+          <div className="bg-muted/30 rounded-lg py-4">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -581,7 +604,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
 
             {/* 캐릭터 추가 입력 영역 */}
             {showAddCharacterInput && (
-              <div className="bg-muted/30 rounded-lg p-4 mb-4">
+              <div className="bg-muted/30 rounded-lg py-4 mb-4">
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -642,7 +665,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {characters.map((char, index) => {
+                {characters.map((char) => {
                   const raids = characterRaids[char.id] || []
                   const clearedCount = raids.filter((r) => r.is_cleared).length
 
@@ -655,7 +678,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
                       <div className="p-4 bg-muted/30 relative">
                         <div className="absolute top-2 right-2">
                           <button
-                            onClick={() => handleDeleteCharacter(char.id)}
+                            onClick={() => confirmDeleteCharacter(char)}
                             className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                             title="삭제"
                           >
@@ -784,6 +807,40 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
           </div>
         </div>
       </div>
+
+      {/* 캐릭터 삭제 확인 다이얼로그 */}
+      <AlertDialog
+        open={characterToDelete !== null}
+        onOpenChange={(open) => !open && setCharacterToDelete(null)}
+      >
+        <AlertDialogContent className="bg-gray-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle>캐릭터 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold text-foreground">
+                {characterToDelete?.character_name}
+              </span>{' '}
+              캐릭터를 삭제하시겠습니까?
+              <br />
+              <span className="text-destructive">
+                이 작업은 되돌릴 수 없으며, 해당 캐릭터의 모든 레이드 정보도
+                함께 삭제됩니다.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCharacterToDelete(null)}>
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCharacter}
+              className="border"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -29,7 +29,9 @@ export interface ArchivedMenuMember {
 /**
  * 사용자의 아카이브된 메뉴 목록을 가져옵니다
  */
-export async function getUserArchivedMenus(userId: string): Promise<ArchivedMenu[]> {
+export async function getUserArchivedMenus(
+  userId: string,
+): Promise<Array<ArchivedMenu>> {
   // For now, return empty array since archived tables are not in the main schema
   // In a real implementation, this would use the RPC function
   console.log('getUserArchivedMenus called for user:', userId)
@@ -39,11 +41,15 @@ export async function getUserArchivedMenus(userId: string): Promise<ArchivedMenu
 /**
  * 아카이브된 메뉴를 복구합니다
  */
-export async function restoreArchivedMenu(archivedMenuId: string): Promise<string | null> {
+export async function restoreArchivedMenu(
+  archivedMenuId: string,
+): Promise<string | null> {
   // For now, return null since archived tables are not in the main schema
   // In a real implementation, this would use the RPC function
   console.log('restoreArchivedMenu called for menu:', archivedMenuId)
-  throw new Error('메뉴 복구 기능은 데이터베이스 마이그레이션 후 사용 가능합니다')
+  throw new Error(
+    '메뉴 복구 기능은 데이터베이스 마이그레이션 후 사용 가능합니다',
+  )
 }
 
 /**
@@ -59,7 +65,9 @@ export async function cleanupExpiredArchivedMenus(): Promise<number> {
 /**
  * 아카이브된 메뉴의 멤버 목록을 가져옵니다
  */
-export async function getArchivedMenuMembers(archivedMenuId: string): Promise<ArchivedMenuMember[]> {
+export async function getArchivedMenuMembers(
+  archivedMenuId: string,
+): Promise<Array<ArchivedMenuMember>> {
   // For now, return empty array since archived tables are not in the main schema
   // In a real implementation, this would use the RPC function
   console.log('getArchivedMenuMembers called for menu:', archivedMenuId)
@@ -103,7 +111,7 @@ export function getTimeUntilExpiry(archivedMenu: ArchivedMenu): {
  * 메뉴 삭제가 다른 사용자에게 영향을 주는지 확인합니다
  */
 export async function checkMenuDeletionImpact(menuId: string): Promise<{
-  affectedUsers: string[]
+  affectedUsers: Array<string>
   hasMembers: boolean
   memberCount: number
 }> {
@@ -117,12 +125,12 @@ export async function checkMenuDeletionImpact(menuId: string): Promise<{
     return { affectedUsers: [], hasMembers: false, memberCount: 0 }
   }
 
-  const affectedUsers = members?.map(member => member.user_id) || []
-  
+  const affectedUsers = members?.map((member) => member.user_id) || []
+
   return {
     affectedUsers,
     hasMembers: affectedUsers.length > 0,
-    memberCount: affectedUsers.length
+    memberCount: affectedUsers.length,
   }
 }
 
@@ -132,13 +140,13 @@ export async function checkMenuDeletionImpact(menuId: string): Promise<{
  */
 export async function notifyAffectedUsers(
   menuName: string,
-  affectedUsers: string[],
-  deletedBy: string
+  affectedUsers: Array<string>,
+  deletedBy: string,
 ): Promise<void> {
   // TODO: 실제 알림 시스템과 연동
   console.log(`메뉴 "${menuName}"이 ${deletedBy}에 의해 삭제되었습니다.`)
   console.log(`영향받는 사용자: ${affectedUsers.join(', ')}`)
-  
+
   // 여기서 실제 알림 로직을 구현할 수 있습니다:
   // - 이메일 발송
   // - 인앱 알림

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import type { ExpeditionCharacter } from '@/types/loa'
 import { supabase } from '@/lib/supabase'
 import { raidList } from '@/lib/raid-list'
-import type { ExpeditionCharacter } from '@/types/loa'
 import {
-  serializeRaidSetupState,
   deserializeRaidSetupState,
+  serializeRaidSetupState,
 } from '@/features/raidSetup/filterUtils'
 import { calculateAverageStats } from '@/utils/scheduleUtils'
 
@@ -16,7 +16,7 @@ export function useRaidCreator(
 ) {
   const [selectedRaid, setSelectedRaid] = useState('')
   const [selectedSlots, setSelectedSlots] = useState<
-    (ExpeditionCharacter | null)[]
+    Array<ExpeditionCharacter | null>
   >([null, null, null, null])
 
   // 초기 상태 복원
@@ -44,14 +44,14 @@ export function useRaidCreator(
   // 레이드 입장 레벨 체크
   const checkItemLevelRequirement = (): {
     valid: boolean
-    invalidSlots: number[]
+    invalidSlots: Array<number>
   } => {
     if (!selectedRaid) return { valid: true, invalidSlots: [] }
 
     const selectedRaidInfo = raidList.find((r) => r.name === selectedRaid)
     if (!selectedRaidInfo) return { valid: true, invalidSlots: [] }
 
-    const invalidSlots: number[] = []
+    const invalidSlots: Array<number> = []
 
     selectedSlots.forEach((slot, idx) => {
       if (slot && slot.ItemLevel < selectedRaidInfo.minItemLevel) {
@@ -83,7 +83,7 @@ export function useRaidCreator(
     }
 
     // 캐릭터 3회 등록 체크
-    const overusedCharacters: string[] = []
+    const overusedCharacters: Array<string> = []
     selectedSlots.forEach((slot) => {
       if (slot) {
         const usageCount = getCharacterUsageCount(slot.CharacterName)

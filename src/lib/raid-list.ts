@@ -4,7 +4,7 @@ export type RaidInfo = {
   clearGold: number
 }
 
-export const raidList: RaidInfo[] = [
+export const raidList: Array<RaidInfo> = [
   { name: '서막 / 에키드나 하드', minItemLevel: 1640, clearGold: 7200 },
   { name: '베히모스', minItemLevel: 1640, clearGold: 7200 },
   { name: '1막 / 에기르 노말', minItemLevel: 1660, clearGold: 11500 },

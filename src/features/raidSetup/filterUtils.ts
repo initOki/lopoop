@@ -1,13 +1,13 @@
-import type { ExpeditionCharacter } from '@/types/loa'
 import { toast } from 'sonner'
+import type { ExpeditionCharacter } from '@/types/loa'
 
 /**
  * 캐릭터 필터링 및 정렬 함수
  * 유효한 캐릭터만 필터링하고 아이템 레벨 내림차순으로 정렬 (최소 아이템 레벨 필터링 제거)
  */
 export function filterAndSortCharacters(
-  characters: ExpeditionCharacter[],
-): ExpeditionCharacter[] {
+  characters: Array<ExpeditionCharacter>,
+): Array<ExpeditionCharacter> {
   console.log(characters)
   // 입력 검증
   if (!Array.isArray(characters)) {
@@ -49,9 +49,9 @@ export function filterAndSortCharacters(
  * 레이드 변경 시 기존 슬롯 선택이 새로운 최소 아이템 레벨을 충족하는지 검증
  */
 export function validateSlots(
-  slots: (ExpeditionCharacter | null)[],
+  slots: Array<ExpeditionCharacter | null>,
   newMinItemLevel: number,
-): (ExpeditionCharacter | null)[] {
+): Array<ExpeditionCharacter | null> {
   // 입력 검증
   if (!Array.isArray(slots)) {
     console.warn('validateSlots: 유효하지 않은 슬롯 배열:', slots)
@@ -105,7 +105,7 @@ export function validateSlots(
  */
 export type SerializableRaidSetupState = {
   selectedRaid: string
-  selectedSlots: (ExpeditionCharacter | null)[]
+  selectedSlots: Array<ExpeditionCharacter | null>
   timestamp: number
 }
 
@@ -115,7 +115,7 @@ export type SerializableRaidSetupState = {
  */
 export function serializeRaidSetupState(
   selectedRaid: string,
-  selectedSlots: (ExpeditionCharacter | null)[],
+  selectedSlots: Array<ExpeditionCharacter | null>,
 ): string {
   try {
     // 입력 검증

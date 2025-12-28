@@ -1,15 +1,30 @@
 import { useState } from 'react'
-import { FileText, Edit2, Eye, Save, X, BookOpen, FileEdit, Layout } from 'lucide-react'
-import type { MenuComponentProps, CustomPageMenuConfig } from '../../types/custom-menu'
+import {
+  BookOpen,
+  Edit2,
+  Eye,
+  FileEdit,
+  FileText,
+  Layout,
+  Save,
+  X,
+} from 'lucide-react'
+import type {
+  CustomPageMenuConfig,
+  MenuComponentProps,
+} from '../../types/custom-menu'
 
-export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) {
+export function CustomPageMenuComponent({
+  menu,
+  onUpdate,
+}: MenuComponentProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
   const config = menu.config as CustomPageMenuConfig
 
   const handleConfigUpdate = (newConfig: Partial<CustomPageMenuConfig>) => {
     onUpdate({
-      config: { ...config, ...newConfig }
+      config: { ...config, ...newConfig },
     })
   }
 
@@ -30,7 +45,7 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
 
   const handleTemplateChange = (template: 'blank' | 'document' | 'wiki') => {
     let templateContent = config.content || ''
-    
+
     if (!templateContent.trim()) {
       switch (template) {
         case 'document':
@@ -73,9 +88,9 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
       }
     }
 
-    handleConfigUpdate({ 
+    handleConfigUpdate({
       template,
-      content: templateContent
+      content: templateContent,
     })
   }
 
@@ -94,17 +109,37 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
       <div className="prose max-w-none">
         {content.split('\n').map((line, index) => {
           if (line.startsWith('# ')) {
-            return <h1 key={index} className="text-2xl font-bold mb-4 mt-6">{line.slice(2)}</h1>
+            return (
+              <h1 key={index} className="text-2xl font-bold mb-4 mt-6">
+                {line.slice(2)}
+              </h1>
+            )
           } else if (line.startsWith('## ')) {
-            return <h2 key={index} className="text-xl font-semibold mb-3 mt-5">{line.slice(3)}</h2>
+            return (
+              <h2 key={index} className="text-xl font-semibold mb-3 mt-5">
+                {line.slice(3)}
+              </h2>
+            )
           } else if (line.startsWith('### ')) {
-            return <h3 key={index} className="text-lg font-medium mb-2 mt-4">{line.slice(4)}</h3>
+            return (
+              <h3 key={index} className="text-lg font-medium mb-2 mt-4">
+                {line.slice(4)}
+              </h3>
+            )
           } else if (line.startsWith('- ')) {
-            return <li key={index} className="ml-4">{line.slice(2)}</li>
+            return (
+              <li key={index} className="ml-4">
+                {line.slice(2)}
+              </li>
+            )
           } else if (line.trim() === '') {
             return <br key={index} />
           } else {
-            return <p key={index} className="mb-2">{line}</p>
+            return (
+              <p key={index} className="mb-2">
+                {line}
+              </p>
+            )
           }
         })}
       </div>
@@ -158,7 +193,7 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
               {[
                 { value: 'blank', label: '빈 페이지', icon: FileEdit },
                 { value: 'document', label: '문서', icon: BookOpen },
-                { value: 'wiki', label: '위키', icon: Layout }
+                { value: 'wiki', label: '위키', icon: Layout },
               ].map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
@@ -178,11 +213,17 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
 
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium text-gray-700">편집 허용</label>
-              <p className="text-sm text-gray-500">페이지 내용을 편집할 수 있습니다</p>
+              <label className="text-sm font-medium text-gray-700">
+                편집 허용
+              </label>
+              <p className="text-sm text-gray-500">
+                페이지 내용을 편집할 수 있습니다
+              </p>
             </div>
             <button
-              onClick={() => handleConfigUpdate({ allowEdit: !config.allowEdit })}
+              onClick={() =>
+                handleConfigUpdate({ allowEdit: !config.allowEdit })
+              }
               className={`${
                 config.allowEdit ? 'bg-cyan-600' : 'bg-gray-200'
               } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2`}
@@ -241,10 +282,10 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
                   className="w-full h-96 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
-              
+
               <div className="text-sm text-gray-500">
-                <strong>팁:</strong> 마크다운 문법을 사용하여 텍스트를 포맷할 수 있습니다.
-                # 제목, ## 부제목, - 목록 등을 사용해보세요.
+                <strong>팁:</strong> 마크다운 문법을 사용하여 텍스트를 포맷할 수
+                있습니다. # 제목, ## 부제목, - 목록 등을 사용해보세요.
               </div>
             </div>
           ) : (
@@ -267,7 +308,11 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold text-cyan-600">
-              {(config.content || '').split(' ').filter(word => word.length > 0).length}
+              {
+                (config.content || '')
+                  .split(' ')
+                  .filter((word) => word.length > 0).length
+              }
             </div>
             <div className="text-gray-600">단어 수</div>
           </div>
@@ -279,8 +324,11 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold text-cyan-600">
-              {config.template === 'blank' ? '빈 페이지' : 
-               config.template === 'document' ? '문서' : '위키'}
+              {config.template === 'blank'
+                ? '빈 페이지'
+                : config.template === 'document'
+                  ? '문서'
+                  : '위키'}
             </div>
             <div className="text-gray-600">템플릿</div>
           </div>
@@ -292,13 +340,27 @@ export function CustomPageMenuComponent({ menu, onUpdate }: MenuComponentProps) 
         <div className="flex items-start gap-3">
           <BookOpen className="w-5 h-5 text-blue-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-blue-900 mb-1">마크다운 사용법</h4>
+            <h4 className="text-sm font-medium text-blue-900 mb-1">
+              마크다운 사용법
+            </h4>
             <div className="text-sm text-blue-700 space-y-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div><code className="bg-blue-100 px-1 rounded"># 제목 1</code> - 큰 제목</div>
-                <div><code className="bg-blue-100 px-1 rounded">## 제목 2</code> - 중간 제목</div>
-                <div><code className="bg-blue-100 px-1 rounded">### 제목 3</code> - 작은 제목</div>
-                <div><code className="bg-blue-100 px-1 rounded">- 목록</code> - 불릿 목록</div>
+                <div>
+                  <code className="bg-blue-100 px-1 rounded"># 제목 1</code> -
+                  큰 제목
+                </div>
+                <div>
+                  <code className="bg-blue-100 px-1 rounded">## 제목 2</code> -
+                  중간 제목
+                </div>
+                <div>
+                  <code className="bg-blue-100 px-1 rounded">### 제목 3</code> -
+                  작은 제목
+                </div>
+                <div>
+                  <code className="bg-blue-100 px-1 rounded">- 목록</code> -
+                  불릿 목록
+                </div>
               </div>
             </div>
           </div>

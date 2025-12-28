@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, X, Edit2, Calendar, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Calendar, Check, Edit2, Plus, Trash2, User, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../../lib/supabase'
-import PersonalRaidSetup from '@/components/PersonalRaidSetup'
 import type { ExpeditionCharacter } from '@/types/loa'
+import PersonalRaidSetup from '@/components/PersonalRaidSetup'
 
 // 개인 스케줄 타입 정의
 interface PersonalSchedule {
@@ -12,7 +12,7 @@ interface PersonalSchedule {
   title: string
   description?: string
   type: 'raid'
-  participants: string[]
+  participants: Array<string>
   is_completed: boolean
   created_at: string
 }
@@ -24,7 +24,7 @@ interface PersonalScheduleRow {
   title: string
   description: string | null
   type: 'raid'
-  participants: string[]
+  participants: Array<string>
   is_completed: boolean
   created_at: string
 }
@@ -33,22 +33,27 @@ interface PersonalSchedulePageProps {
   userId: string
 }
 
-export default function PersonalSchedulePage({ userId }: PersonalSchedulePageProps) {
-  const [schedules, setSchedules] = useState<PersonalSchedule[]>([])
+export default function PersonalSchedulePage({
+  userId,
+}: PersonalSchedulePageProps) {
+  const [schedules, setSchedules] = useState<Array<PersonalSchedule>>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [editingSchedule, setEditingSchedule] = useState<PersonalSchedule | null>(null)
+  const [editingSchedule, setEditingSchedule] =
+    useState<PersonalSchedule | null>(null)
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'raid' as const,
-    participants: [] as string[],
+    participants: [] as Array<string>,
   })
-  
+
   // 레이드 관련 상태 (단일 슬롯만 사용)
   const [selectedRaid, setSelectedRaid] = useState('')
-  const [selectedSlots, setSelectedSlots] = useState<(ExpeditionCharacter | null)[]>([null, null, null, null])
+  const [selectedSlots, setSelectedSlots] = useState<
+    Array<ExpeditionCharacter | null>
+  >([null, null, null, null])
 
   // Supabase에서 개인 스케줄 목록 가져오기 및 실시간 구독
   useEffect(() => {
@@ -81,16 +86,20 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
             }
             // 중복 방지: 이미 존재하는 스케줄인지 확인
             setSchedules((prev) => {
-              const exists = prev.some(schedule => schedule.id === newSchedule.id)
+              const exists = prev.some(
+                (schedule) => schedule.id === newSchedule.id,
+              )
               if (exists) return prev
               return [newSchedule, ...prev]
             })
           } else if (payload.eventType === 'UPDATE') {
             const updatedRow = payload.new as PersonalScheduleRow
             setSchedules((prev) => {
-              const exists = prev.some(schedule => schedule.id === updatedRow.id)
+              const exists = prev.some(
+                (schedule) => schedule.id === updatedRow.id,
+              )
               if (!exists) return prev // 존재하지 않는 항목은 업데이트하지 않음
-              
+
               return prev.map((schedule) =>
                 schedule.id === updatedRow.id
                   ? {
@@ -109,9 +118,11 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
           } else if (payload.eventType === 'DELETE') {
             const deletedRow = payload.old as PersonalScheduleRow
             setSchedules((prev) => {
-              const exists = prev.some(schedule => schedule.id === deletedRow.id)
+              const exists = prev.some(
+                (schedule) => schedule.id === deletedRow.id,
+              )
               if (!exists) return prev // 이미 삭제된 항목은 처리하지 않음
-              
+
               return prev.filter((schedule) => schedule.id !== deletedRow.id)
             })
           }
@@ -120,10 +131,14 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
       .subscribe((status) => {
         console.log('Personal Schedule subscription status:', status)
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to personal schedules realtime updates')
+          console.log(
+            'Successfully subscribed to personal schedules realtime updates',
+          )
           setIsRealtimeConnected(true)
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to personal schedules realtime updates')
+          console.error(
+            'Error subscribing to personal schedules realtime updates',
+          )
           setIsRealtimeConnected(false)
           toast.error('실시간 업데이트 연결에 실패했습니다.')
         } else if (status === 'CLOSED') {
@@ -148,8 +163,8 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
       if (error) throw error
 
-      const formattedSchedules: PersonalSchedule[] =
-        (data as PersonalScheduleRow[])?.map((schedule) => ({
+      const formattedSchedules: Array<PersonalSchedule> =
+        (data as Array<PersonalScheduleRow>)?.map((schedule) => ({
           id: schedule.id,
           user_id: schedule.user_id,
           title: schedule.title,
@@ -177,10 +192,12 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     } else {
       try {
         // 레이드 타입이므로 선택된 캐릭터를 참가자로 설정
-        let participants: string[] = []
-        const selectedCharacter = selectedSlots.find(slot => slot !== null)
+        let participants: Array<string> = []
+        const selectedCharacter = selectedSlots.find((slot) => slot !== null)
         if (selectedCharacter) {
-          participants = [`${selectedCharacter.CharacterName} / ${selectedCharacter.CharacterClassName} (${selectedCharacter.ItemLevel.toLocaleString()})`]
+          participants = [
+            `${selectedCharacter.CharacterName} / ${selectedCharacter.CharacterClassName} (${selectedCharacter.ItemLevel.toLocaleString()})`,
+          ]
         }
 
         const scheduleToInsert = {
@@ -191,7 +208,9 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
           participants: participants,
         }
 
-        const { error } = await supabase.from('personal_schedules').insert([scheduleToInsert])
+        const { error } = await supabase
+          .from('personal_schedules')
+          .insert([scheduleToInsert])
 
         if (error) throw error
 
@@ -216,10 +235,12 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
     try {
       // 레이드 타입이므로 선택된 캐릭터를 참가자로 설정
-      let participants: string[] = []
-      const selectedCharacter = selectedSlots.find(slot => slot !== null)
+      let participants: Array<string> = []
+      const selectedCharacter = selectedSlots.find((slot) => slot !== null)
       if (selectedCharacter) {
-        participants = [`${selectedCharacter.CharacterName} / ${selectedCharacter.CharacterClassName} (${selectedCharacter.ItemLevel.toLocaleString()})`]
+        participants = [
+          `${selectedCharacter.CharacterName} / ${selectedCharacter.CharacterClassName} (${selectedCharacter.ItemLevel.toLocaleString()})`,
+        ]
       }
 
       const { error } = await supabase
@@ -269,10 +290,10 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
       type: schedule.type,
       participants: schedule.participants,
     })
-    
+
     // 캐릭터 정보 파싱 시도 (완벽하지 않을 수 있음)
     setSelectedSlots([null, null, null, null])
-    
+
     setIsFormOpen(true)
   }
 
@@ -298,7 +319,7 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     } catch (error) {
       console.error('Error deleting personal schedule:', error)
       toast.error('개인 스케줄을 삭제하는데 실패했습니다.')
-      
+
       // 삭제 실패 시 데이터 다시 불러오기
       fetchSchedules()
     }
@@ -314,8 +335,8 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
       // 즉시 로컬 상태 업데이트 (낙관적 업데이트)
       setSchedules((prev) =>
         prev.map((s) =>
-          s.id === id ? { ...s, is_completed: newCompletedState } : s
-        )
+          s.id === id ? { ...s, is_completed: newCompletedState } : s,
+        ),
       )
 
       const { error } = await supabase
@@ -326,17 +347,19 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
       if (error) throw error
 
       toast.success(
-        schedule.is_completed ? '미완료로 변경되었습니다.' : '완료로 표시되었습니다.',
+        schedule.is_completed
+          ? '미완료로 변경되었습니다.'
+          : '완료로 표시되었습니다.',
       )
     } catch (error) {
       console.error('Error updating personal schedule:', error)
       toast.error('개인 스케줄 상태를 변경하는데 실패했습니다.')
-      
+
       // 업데이트 실패 시 원래 상태로 되돌리기
       setSchedules((prev) =>
         prev.map((s) =>
-          s.id === id ? { ...s, is_completed: schedule.is_completed } : s
-        )
+          s.id === id ? { ...s, is_completed: schedule.is_completed } : s,
+        ),
       )
     }
   }
@@ -349,8 +372,6 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
     return 'bg-red-500/20 text-red-400'
   }
 
-
-
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto">
@@ -359,8 +380,10 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
             <User className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold text-foreground">개인 스케줄</h2>
             {/* 실시간 연결 상태 인디케이터 */}
-            <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} 
-                 title={isRealtimeConnected ? '실시간 연결됨' : '실시간 연결 끊김'} />
+            <div
+              className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-red-500'}`}
+              title={isRealtimeConnected ? '실시간 연결됨' : '실시간 연결 끊김'}
+            />
           </div>
           <button
             onClick={() => setIsFormOpen(true)}
@@ -395,7 +418,9 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                       <h3 className="font-semibold text-lg text-foreground">
                         {schedule.title}
                       </h3>
-                      <span className={`text-xs px-2 py-1 rounded ${getScheduleTypeColor()}`}>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${getScheduleTypeColor()}`}
+                      >
                         {getScheduleTypeLabel()}
                       </span>
                       {schedule.is_completed && (
@@ -408,13 +433,16 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                     <div className="text-foreground space-y-2">
                       {schedule.description && (
                         <p className="text-muted-foreground">
-                          <span className="font-medium">설명:</span> {schedule.description}
+                          <span className="font-medium">설명:</span>{' '}
+                          {schedule.description}
                         </p>
                       )}
 
                       {schedule.participants.length > 0 && (
                         <div>
-                          <span className="font-medium text-foreground">캐릭터:</span>
+                          <span className="font-medium text-foreground">
+                            캐릭터:
+                          </span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {schedule.participants.map((participant, index) => (
                               <span
@@ -438,9 +466,15 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
                           ? 'bg-muted hover:bg-muted/80 text-muted-foreground'
                           : 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
                       }`}
-                      title={schedule.is_completed ? '미완료로 변경' : '완료로 표시'}
+                      title={
+                        schedule.is_completed ? '미완료로 변경' : '완료로 표시'
+                      }
                     >
-                      {schedule.is_completed ? <X size={20} /> : <Check size={20} />}
+                      {schedule.is_completed ? (
+                        <X size={20} />
+                      ) : (
+                        <Check size={20} />
+                      )}
                     </button>
                     <button
                       onClick={() => handleEdit(schedule)}
@@ -504,7 +538,9 @@ export default function PersonalSchedulePage({ userId }: PersonalSchedulePagePro
 
                 {/* 레이드 선택 및 캐릭터 검색 */}
                 <div className="border border-border rounded-lg p-4 bg-gray-900/50">
-                  <h4 className="text-lg font-semibold text-foreground mb-4">캐릭터 선택</h4>
+                  <h4 className="text-lg font-semibold text-foreground mb-4">
+                    캐릭터 선택
+                  </h4>
                   <PersonalRaidSetup
                     selectedSlots={selectedSlots}
                     onSlotsChange={setSelectedSlots}

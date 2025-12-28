@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { X, AlertCircle, Info } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { AlertCircle, Info, X } from 'lucide-react'
 import {
-  MenuType,
   DEFAULT_MENU_CONFIGS,
-  type MenuCreatorProps,
-  type MenuFormData,
-  type MenuConfig,
+  
+  
+  
+  MenuType
 } from '../types/custom-menu'
-import { validateMenu, getUserMenuNames } from '../lib/custom-menu-utils'
+import { getUserMenuNames, validateMenu } from '../lib/custom-menu-utils'
+import type {MenuConfig, MenuCreatorProps, MenuFormData} from '../types/custom-menu';
 
 /**
  * MenuCreator 컴포넌트
@@ -25,9 +26,9 @@ export function MenuCreator({
     config: DEFAULT_MENU_CONFIGS[MenuType.PERSONAL],
   })
 
-  const [existingNames, setExistingNames] = useState<string[]>([])
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+  const [existingNames, setExistingNames] = useState<Array<string>>([])
+  const [validationErrors, setValidationErrors] = useState<Array<string>>([])
+  const [validationWarnings, setValidationWarnings] = useState<Array<string>>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 기존 메뉴 이름 로드

@@ -1,17 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { 
-  getMenuMembers, 
-  addMenuMember, 
-  removeMenuMember 
+import {
+  addMenuMember,
+  getMenuMembers,
+  removeMenuMember,
 } from '../lib/custom-menu-utils'
-import type { 
-  MenuMember, 
-  MenuMemberInsert 
-} from '../types/custom-menu'
+import type { MenuMember, MenuMemberInsert } from '../types/custom-menu'
 
 interface UseMenuMembersReturn {
-  members: MenuMember[]
+  members: Array<MenuMember>
   loading: boolean
   error: string | null
   addMember: (memberData: MenuMemberInsert) => Promise<MenuMember | null>
@@ -23,7 +20,7 @@ interface UseMenuMembersReturn {
  * Hook for managing menu members with real-time updates
  */
 export function useMenuMembers(menuId: string): UseMenuMembersReturn {
-  const [members, setMembers] = useState<MenuMember[]>([])
+  const [members, setMembers] = useState<Array<MenuMember>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,42 +57,48 @@ export function useMenuMembers(menuId: string): UseMenuMembersReturn {
           event: '*',
           schema: 'public',
           table: 'menu_members',
-          filter: `menu_id=eq.${menuId}`
+          filter: `menu_id=eq.${menuId}`,
         },
         (payload: any) => {
           console.log('Menu member change detected:', payload)
-          
+
           switch (payload.eventType) {
             case 'INSERT':
-              setMembers((prev: MenuMember[]) => {
+              setMembers((prev: Array<MenuMember>) => {
                 const newMember = payload.new as MenuMember
                 // Check if member already exists to avoid duplicates
-                if (prev.find((member: MenuMember) => member.id === newMember.id)) {
+                if (
+                  prev.find((member: MenuMember) => member.id === newMember.id)
+                ) {
                   return prev
                 }
-                return [...prev, newMember].sort((a: MenuMember, b: MenuMember) => 
-                  new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime()
+                return [...prev, newMember].sort(
+                  (a: MenuMember, b: MenuMember) =>
+                    new Date(a.joined_at).getTime() -
+                    new Date(b.joined_at).getTime(),
                 )
               })
               break
-              
+
             case 'UPDATE':
-              setMembers((prev: MenuMember[]) => 
-                prev.map((member: MenuMember) => 
-                  member.id === payload.new.id 
-                    ? { ...member, ...payload.new } as MenuMember
-                    : member
-                )
+              setMembers((prev: Array<MenuMember>) =>
+                prev.map((member: MenuMember) =>
+                  member.id === payload.new.id
+                    ? ({ ...member, ...payload.new } as MenuMember)
+                    : member,
+                ),
               )
               break
-              
+
             case 'DELETE':
-              setMembers((prev: MenuMember[]) => 
-                prev.filter((member: MenuMember) => member.id !== payload.old.id)
+              setMembers((prev: Array<MenuMember>) =>
+                prev.filter(
+                  (member: MenuMember) => member.id !== payload.old.id,
+                ),
               )
               break
           }
-        }
+        },
       )
       .subscribe()
 
@@ -106,32 +109,40 @@ export function useMenuMembers(menuId: string): UseMenuMembersReturn {
   }, [menuId, loadMembers])
 
   // Add a new member
-  const addMember = useCallback(async (memberData: MenuMemberInsert): Promise<MenuMember | null> => {
-    try {
-      setError(null)
-      const newMember = await addMenuMember(memberData)
-      // Real-time subscription will handle state update
-      return newMember
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '멤버 추가에 실패했습니다'
-      setError(errorMessage)
-      throw err
-    }
-  }, [])
+  const addMember = useCallback(
+    async (memberData: MenuMemberInsert): Promise<MenuMember | null> => {
+      try {
+        setError(null)
+        const newMember = await addMenuMember(memberData)
+        // Real-time subscription will handle state update
+        return newMember
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '멤버 추가에 실패했습니다'
+        setError(errorMessage)
+        throw err
+      }
+    },
+    [],
+  )
 
   // Remove a member
-  const removeMember = useCallback(async (userId: string): Promise<boolean> => {
-    try {
-      setError(null)
-      const success = await removeMenuMember(menuId, userId)
-      // Real-time subscription will handle state update
-      return success
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '멤버 제거에 실패했습니다'
-      setError(errorMessage)
-      throw err
-    }
-  }, [menuId])
+  const removeMember = useCallback(
+    async (userId: string): Promise<boolean> => {
+      try {
+        setError(null)
+        const success = await removeMenuMember(menuId, userId)
+        // Real-time subscription will handle state update
+        return success
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '멤버 제거에 실패했습니다'
+        setError(errorMessage)
+        throw err
+      }
+    },
+    [menuId],
+  )
 
   // Refresh members manually
   const refreshMembers = useCallback(async () => {
@@ -144,6 +155,6 @@ export function useMenuMembers(menuId: string): UseMenuMembersReturn {
     error,
     addMember,
     removeMember,
-    refreshMembers
+    refreshMembers,
   }
 }

@@ -3,6 +3,9 @@
  * 요구사항 7.5: 네트워크 오류 처리 및 복구
  */
 
+// React import for the hook
+import { useEffect, useState } from 'react'
+
 export interface RetryOptions {
   maxRetries: number
   baseDelay: number
@@ -28,7 +31,7 @@ const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   maxRetries: 3,
   baseDelay: 1000, // 1 second
   maxDelay: 10000, // 10 seconds
-  backoffFactor: 2
+  backoffFactor: 2,
 }
 
 /**
@@ -38,10 +41,10 @@ class NetworkStateManager {
   private state: NetworkState = {
     isOnline: navigator.onLine,
     isConnected: true,
-    lastConnectedAt: new Date()
+    lastConnectedAt: new Date(),
   }
 
-  private listeners: ((state: NetworkState) => void)[] = []
+  private listeners: Array<(state: NetworkState) => void> = []
 
   constructor() {
     // Listen to browser online/offline events
@@ -53,20 +56,20 @@ class NetworkStateManager {
     this.updateState({
       isOnline: true,
       isConnected: true,
-      lastConnectedAt: new Date()
+      lastConnectedAt: new Date(),
     })
   }
 
   private handleOffline() {
     this.updateState({
       isOnline: false,
-      isConnected: false
+      isConnected: false,
     })
   }
 
   private updateState(updates: Partial<NetworkState>) {
     this.state = { ...this.state, ...updates }
-    this.listeners.forEach(listener => listener(this.state))
+    this.listeners.forEach((listener) => listener(this.state))
   }
 
   public getState(): NetworkState {
@@ -86,7 +89,7 @@ class NetworkStateManager {
   public setConnected(connected: boolean) {
     this.updateState({
       isConnected: connected,
-      lastConnectedAt: connected ? new Date() : this.state.lastConnectedAt
+      lastConnectedAt: connected ? new Date() : this.state.lastConnectedAt,
     })
   }
 }
@@ -98,7 +101,7 @@ export const networkStateManager = new NetworkStateManager()
  */
 class OfflineActionQueue {
   private readonly STORAGE_KEY = 'custom_menus_offline_actions'
-  private actions: OfflineAction[] = []
+  private actions: Array<OfflineAction> = []
 
   constructor() {
     this.loadFromStorage()
@@ -110,7 +113,7 @@ class OfflineActionQueue {
       if (stored) {
         this.actions = JSON.parse(stored).map((action: any) => ({
           ...action,
-          timestamp: new Date(action.timestamp)
+          timestamp: new Date(action.timestamp),
         }))
       }
     } catch (error) {
@@ -131,27 +134,27 @@ class OfflineActionQueue {
     const newAction: OfflineAction = {
       ...action,
       id: crypto.randomUUID(),
-      timestamp: new Date()
+      timestamp: new Date(),
     }
-    
+
     this.actions.push(newAction)
     this.saveToStorage()
   }
 
-  public getActions(userId?: string): OfflineAction[] {
-    return userId 
-      ? this.actions.filter(action => action.userId === userId)
+  public getActions(userId?: string): Array<OfflineAction> {
+    return userId
+      ? this.actions.filter((action) => action.userId === userId)
       : [...this.actions]
   }
 
   public removeAction(actionId: string) {
-    this.actions = this.actions.filter(action => action.id !== actionId)
+    this.actions = this.actions.filter((action) => action.id !== actionId)
     this.saveToStorage()
   }
 
   public clearActions(userId?: string) {
     if (userId) {
-      this.actions = this.actions.filter(action => action.userId !== userId)
+      this.actions = this.actions.filter((action) => action.userId !== userId)
     } else {
       this.actions = []
     }
@@ -169,7 +172,7 @@ export const offlineActionQueue = new OfflineActionQueue()
  * Sleep utility for retry delays
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -195,12 +198,12 @@ function isRetryableError(error: any): boolean {
     if (error.code >= 500 && error.code < 600) {
       return true
     }
-    
+
     // Rate limiting
     if (error.code === 429) {
       return true
     }
-    
+
     // Connection timeout
     if (error.code === 'PGRST301') {
       return true
@@ -215,11 +218,11 @@ function isRetryableError(error: any): boolean {
       'connection refused',
       'timeout',
       'temporary failure',
-      'service unavailable'
+      'service unavailable',
     ]
-    
+
     const message = error.message.toLowerCase()
-    return retryableMessages.some(msg => message.includes(msg))
+    return retryableMessages.some((msg) => message.includes(msg))
   }
 
   return false
@@ -230,7 +233,7 @@ function isRetryableError(error: any): boolean {
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  options: Partial<RetryOptions> = {}
+  options: Partial<RetryOptions> = {},
 ): Promise<T> {
   const opts = { ...DEFAULT_RETRY_OPTIONS, ...options }
   let lastError: any
@@ -238,16 +241,16 @@ export async function withRetry<T>(
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
       const result = await fn()
-      
+
       // If successful and we had previous failures, mark as connected
       if (attempt > 0) {
         networkStateManager.setConnected(true)
       }
-      
+
       return result
     } catch (error) {
       lastError = error
-      
+
       // Mark as disconnected on network errors
       if (isRetryableError(error)) {
         networkStateManager.setConnected(false)
@@ -265,7 +268,10 @@ export async function withRetry<T>(
 
       // Wait before retrying
       const delay = calculateDelay(attempt, opts)
-      console.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error instanceof Error ? error.message : String(error))
+      console.warn(
+        `Attempt ${attempt + 1} failed, retrying in ${delay}ms:`,
+        error instanceof Error ? error.message : String(error),
+      )
       await sleep(delay)
     }
   }
@@ -280,10 +286,10 @@ export async function withRetry<T>(
 export async function withOfflineSupport<T>(
   fn: () => Promise<T>,
   offlineAction: Omit<OfflineAction, 'id' | 'timestamp'>,
-  options: Partial<RetryOptions> = {}
+  options: Partial<RetryOptions> = {},
 ): Promise<T | null> {
   const networkState = networkStateManager.getState()
-  
+
   // If offline, queue the action
   if (!networkState.isOnline || !networkState.isConnected) {
     console.log('Offline mode: queuing action for later execution')
@@ -295,12 +301,15 @@ export async function withOfflineSupport<T>(
     return await withRetry(fn, options)
   } catch (error) {
     // If the error is network-related and we're now offline, queue the action
-    if (isRetryableError(error) && !networkStateManager.getState().isConnected) {
+    if (
+      isRetryableError(error) &&
+      !networkStateManager.getState().isConnected
+    ) {
       console.log('Network error: queuing action for later execution')
       offlineActionQueue.addAction(offlineAction)
       return null
     }
-    
+
     throw error
   }
 }
@@ -315,7 +324,7 @@ export async function processOfflineActions(
     update: (data: any) => Promise<any>
     delete: (data: any) => Promise<any>
     reorder: (data: any) => Promise<any>
-  }
+  },
 ): Promise<{ processed: number; failed: number }> {
   const actions = offlineActionQueue.getActions(userId)
   let processed = 0
@@ -339,7 +348,7 @@ export async function processOfflineActions(
     } catch (error) {
       console.error(`Failed to process offline action ${action.id}:`, error)
       failed++
-      
+
       // Remove actions that are too old (older than 24 hours)
       const maxAge = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
       if (Date.now() - action.timestamp.getTime() > maxAge) {
@@ -357,7 +366,7 @@ export async function processOfflineActions(
  */
 export function useNetworkState() {
   const [networkState, setNetworkState] = useState<NetworkState>(
-    networkStateManager.getState()
+    networkStateManager.getState(),
   )
 
   useEffect(() => {
@@ -367,6 +376,3 @@ export function useNetworkState() {
 
   return networkState
 }
-
-// React import for the hook
-import { useState, useEffect } from 'react'

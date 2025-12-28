@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { User, Session } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 
 export interface AuthState {
   user: User | null
@@ -26,7 +26,10 @@ export async function signInAnonymously() {
  */
 export async function getCurrentUser() {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
     if (error) throw error
     return user
   } catch (error) {
@@ -51,6 +54,8 @@ export async function signOut() {
 /**
  * 인증 상태 변화 리스너
  */
-export function onAuthStateChange(callback: (event: string, session: Session | null) => void) {
+export function onAuthStateChange(
+  callback: (event: string, session: Session | null) => void,
+) {
   return supabase.auth.onAuthStateChange(callback)
 }

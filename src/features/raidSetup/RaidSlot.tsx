@@ -1,6 +1,6 @@
+import { filterAndSortCharacters } from './filterUtils'
 import type { ExpeditionCharacter } from '@/types/loa'
 import { formatCharacterForSelect } from '@/utils/classUtils'
-import { filterAndSortCharacters } from './filterUtils'
 import {
   Select,
   SelectContent,
@@ -18,7 +18,7 @@ export default function RaidSlot({
   minItemLevel,
 }: {
   index: number
-  characters: ExpeditionCharacter[]
+  characters: Array<ExpeditionCharacter>
   value: ExpeditionCharacter | null
   onChange: (c: ExpeditionCharacter | null) => void
   getCharacterUsageCount?: (characterName: string) => number

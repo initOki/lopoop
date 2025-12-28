@@ -1,29 +1,29 @@
+import { DEFAULT_MENU_CONFIGS, MenuType } from '../types/custom-menu'
 import { supabase } from './supabase'
-import { MenuType, DEFAULT_MENU_CONFIGS } from '../types/custom-menu'
 import {
   checkMenuDeletionImpact,
   notifyAffectedUsers,
 } from './menu-archive-utils'
 import {
-  withRetry,
-  withOfflineSupport,
   offlineActionQueue,
   processOfflineActions,
+  withOfflineSupport,
+  withRetry,
 } from './network-error-handler'
 import {
-  validateMenuData,
   checkRateLimit,
   logSecurityEvent,
+  validateMenuData,
 } from './input-validation-security'
 import type {
   CustomMenu,
   CustomMenuInsert,
   CustomMenuUpdate,
+  MenuConfig,
+  MenuLimits,
   MenuMember,
   MenuMemberInsert,
-  MenuConfig,
   MenuValidationResult,
-  MenuLimits,
 } from '../types/custom-menu'
 
 // Menu validation constants
@@ -40,10 +40,10 @@ export function validateMenu(
   name: string,
   type: MenuType,
   config: MenuConfig,
-  existingNames: string[] = [],
+  existingNames: Array<string> = [],
 ): MenuValidationResult {
-  const errors: string[] = []
-  const warnings: string[] = []
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
 
   // Validate name
   if (!name || name.trim().length === 0) {
@@ -120,7 +120,7 @@ export async function checkMenuLimit(userId: string): Promise<boolean> {
 /**
  * Gets all existing menu names for a user
  */
-export async function getUserMenuNames(userId: string): Promise<string[]> {
+export async function getUserMenuNames(userId: string): Promise<Array<string>> {
   const { data, error } = await supabase
     .from('custom_menus')
     .select('name')
@@ -439,7 +439,7 @@ export async function deleteCustomMenu(
  */
 export async function getUserCustomMenus(
   userId: string,
-): Promise<CustomMenu[]> {
+): Promise<Array<CustomMenu>> {
   return await withRetry(async () => {
     const { data, error } = await supabase
       .from('custom_menus')
@@ -461,7 +461,7 @@ export async function getUserCustomMenus(
  */
 export async function reorderCustomMenus(
   userId: string,
-  menuOrders: { id: string; order: number }[],
+  menuOrders: Array<{ id: string; order: number }>,
 ): Promise<boolean> {
   const result = await withOfflineSupport(
     async () => {
@@ -531,7 +531,7 @@ export async function removeMenuMember(
 /**
  * Gets all members of a group menu
  */
-export async function getMenuMembers(menuId: string): Promise<MenuMember[]> {
+export async function getMenuMembers(menuId: string): Promise<Array<MenuMember>> {
   const { data, error } = await supabase
     .from('menu_members')
     .select('*')

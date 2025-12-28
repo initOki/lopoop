@@ -1,4 +1,5 @@
-import { Heart, Swords, Edit2, X, Save } from 'lucide-react'
+import { Edit2, Heart, Save, Swords, X } from 'lucide-react'
+import type { ExpeditionCharacter } from '@/types/loa'
 import { getClassRole } from '@/utils/classUtils'
 import { parseSlotData } from '@/utils/scheduleUtils'
 import AccountSearch from '@/features/characterSearch/AccountSearch'
@@ -9,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { ExpeditionCharacter } from '@/types/loa'
 
 type Props = {
   scheduleId: number
@@ -17,13 +17,13 @@ type Props = {
   slotText: string | null
   combatPower?: number | null
   isEditing: boolean
-  editCharacters: ExpeditionCharacter[]
+  editCharacters: Array<ExpeditionCharacter>
   selectedEditCharacter: ExpeditionCharacter | null
   onStartEdit: (scheduleId: number, slotIndex: number) => void
   onCancelEdit: () => void
   onUpdateSlot: (scheduleId: number, slotIndex: number) => void
   onClearSlot: (scheduleId: number, slotIndex: number) => void
-  onCharacterSearch: (chars: ExpeditionCharacter[]) => void
+  onCharacterSearch: (chars: Array<ExpeditionCharacter>) => void
   onCharacterSelect: (char: ExpeditionCharacter | null) => void
   getCharacterUsageCount: (
     name: string,
