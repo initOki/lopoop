@@ -1,9 +1,10 @@
 // src/components/PersonalRaidSetup.tsx
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ExpeditionCharacter } from '@/types/loa'
+import type {RaidInfo} from '@/lib/raid-list';
 import AccountSearch from '@/features/characterSearch/AccountSearch'
 import RaidSlot from '@/features/raidSetup/RaidSlot'
-import { raidList, type RaidInfo } from '@/lib/raid-list'
+import {  raidList } from '@/lib/raid-list'
 import { validateSlots } from '@/features/raidSetup/filterUtils'
 import {
   Select,
@@ -14,8 +15,8 @@ import {
 } from '@/components/ui/select'
 
 type Props = {
-  selectedSlots?: (ExpeditionCharacter | null)[]
-  onSlotsChange?: (slots: (ExpeditionCharacter | null)[]) => void
+  selectedSlots?: Array<ExpeditionCharacter | null>
+  onSlotsChange?: (slots: Array<ExpeditionCharacter | null>) => void
   selectedRaid?: string
   onRaidChange?: (raidName: string) => void
 }
@@ -27,11 +28,11 @@ export default function PersonalRaidSetup({
   onRaidChange,
 }: Props) {
   const [accounts, setAccounts] = useState<
-    Record<number, ExpeditionCharacter[]>
+    Record<number, Array<ExpeditionCharacter>>
   >({})
 
   const [internalSlots, setInternalSlots] = useState<
-    (ExpeditionCharacter | null)[]
+    Array<ExpeditionCharacter | null>
   >([null, null, null, null])
 
   const [internalRaid, setInternalRaid] = useState<string>('')
@@ -68,7 +69,7 @@ export default function PersonalRaidSetup({
   // 계정 검색 완료 후 슬롯 재검증 로직
   const handleAccountSearchResult = (
     expeditionIndex: number,
-    chars: ExpeditionCharacter[],
+    chars: Array<ExpeditionCharacter>,
   ) => {
     // 계정 데이터 업데이트
     setAccounts((prev) => ({ ...prev, [expeditionIndex]: chars }))

@@ -2,16 +2,16 @@ import { Link } from '@tanstack/react-router'
 
 import { useState } from 'react'
 import {
-  Home,
-  Menu,
-  X,
-  Wallet,
   Calendar,
-  Users,
   FileText,
   GripVertical,
+  Home,
   Lock,
+  Menu,
   Settings,
+  Users,
+  Wallet,
+  X,
 } from 'lucide-react'
 import { useMenuPermissions } from '../hooks/useMenuPermissions'
 import type { CustomMenu, MenuType } from '../types/custom-menu'

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Check, Swords, Heart, ChevronRight } from 'lucide-react'
-import type { Debt } from './types/debt'
+import { Check, ChevronRight, Heart, Swords } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import { getClassRole } from './utils/classUtils'
 import AdventureIslands from './components/AdventureIslands'
+import type { Debt } from './types/debt'
 
 interface DebtRow {
   id: string
@@ -31,7 +31,7 @@ interface ScheduleRow {
 interface RaidSummary {
   id: number
   raidName: string
-  slots: (string | null)[]
+  slots: Array<string | null>
   isCompleted: boolean
   filledSlots: number
 }
@@ -59,8 +59,8 @@ function parseSlotData(slotText: string | null): SlotData {
 }
 
 export default function App() {
-  const [debts, setDebts] = useState<Debt[]>([])
-  const [raids, setRaids] = useState<RaidSummary[]>([])
+  const [debts, setDebts] = useState<Array<Debt>>([])
+  const [raids, setRaids] = useState<Array<RaidSummary>>([])
   const [isLoadingDebts, setIsLoadingDebts] = useState(true)
   const [isLoadingRaids, setIsLoadingRaids] = useState(true)
 
@@ -150,8 +150,8 @@ export default function App() {
 
       if (error) throw error
 
-      const formattedDebts: Debt[] =
-        (data as DebtRow[])?.map((debt) => ({
+      const formattedDebts: Array<Debt> =
+        (data as Array<DebtRow>)?.map((debt) => ({
           id: debt.id,
           debtor: debt.debtor,
           creditor: debt.creditor,
@@ -182,8 +182,8 @@ export default function App() {
 
       if (error) throw error
 
-      const formattedRaids: RaidSummary[] =
-        (data as ScheduleRow[])?.map((row) => {
+      const formattedRaids: Array<RaidSummary> =
+        (data as Array<ScheduleRow>)?.map((row) => {
           const slots = [row.slot_1, row.slot_2, row.slot_3, row.slot_4]
           const filledSlots = slots.filter((slot) => slot !== null).length
 

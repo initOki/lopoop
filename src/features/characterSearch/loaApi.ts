@@ -21,7 +21,7 @@ export type CharacterProfile = {
 
 export async function fetchCharacterSiblings(
   characterName: string,
-): Promise<CharacterSummary[]> {
+): Promise<Array<CharacterSummary>> {
   const apiKey = import.meta.env.VITE_LOA_API_KEY
 
   const res = await fetch(

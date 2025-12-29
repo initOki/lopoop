@@ -1,6 +1,18 @@
 import { useState } from 'react'
-import { ExternalLink, Plus, Edit2, Trash2, Grid3X3, List, Globe, Link as LinkIcon } from 'lucide-react'
-import type { MenuComponentProps, ExternalLinkMenuConfig } from '../../types/custom-menu'
+import {
+  Edit2,
+  ExternalLink,
+  Globe,
+  Grid3X3,
+  Link as LinkIcon,
+  List,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import type {
+  ExternalLinkMenuConfig,
+  MenuComponentProps,
+} from '../../types/custom-menu'
 
 interface LinkItem {
   id: string
@@ -10,7 +22,10 @@ interface LinkItem {
   icon?: string
 }
 
-export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps) {
+export function ExternalLinkMenuComponent({
+  menu,
+  onUpdate,
+}: MenuComponentProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -18,34 +33,34 @@ export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps
 
   const handleConfigUpdate = (newConfig: Partial<ExternalLinkMenuConfig>) => {
     onUpdate({
-      config: { ...config, ...newConfig }
+      config: { ...config, ...newConfig },
     })
   }
 
   const handleAddLink = (linkData: Omit<LinkItem, 'id'>) => {
     const newLink: LinkItem = {
       id: `link-${Date.now()}`,
-      ...linkData
+      ...linkData,
     }
 
     handleConfigUpdate({
-      links: [...config.links, newLink]
+      links: [...config.links, newLink],
     })
     setShowAddForm(false)
   }
 
   const handleUpdateLink = (linkId: string, updates: Partial<LinkItem>) => {
     handleConfigUpdate({
-      links: config.links.map(link => 
-        link.id === linkId ? { ...link, ...updates } : link
-      )
+      links: config.links.map((link) =>
+        link.id === linkId ? { ...link, ...updates } : link,
+      ),
     })
     setEditingLink(null)
   }
 
   const handleDeleteLink = (linkId: string) => {
     handleConfigUpdate({
-      links: config.links.filter(link => link.id !== linkId)
+      links: config.links.filter((link) => link.id !== linkId),
     })
   }
 
@@ -65,8 +80,8 @@ export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps
             <button
               onClick={() => setIsEditing(!isEditing)}
               className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                isEditing 
-                  ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                isEditing
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -89,7 +104,7 @@ export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps
           <div className="flex items-center gap-2">
             {[
               { value: 'grid', label: '그리드', icon: Grid3X3 },
-              { value: 'list', label: '리스트', icon: List }
+              { value: 'list', label: '리스트', icon: List },
             ].map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
@@ -135,7 +150,9 @@ export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps
         {config.links.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <LinkIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h4 className="text-lg font-medium text-gray-900 mb-2">링크가 없습니다</h4>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">
+              링크가 없습니다
+            </h4>
             <p className="text-gray-600 mb-4">
               자주 방문하는 웹사이트 링크를 추가하여 빠르게 접근하세요.
             </p>
@@ -143,16 +160,17 @@ export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps
               onClick={() => setShowAddForm(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
             >
-              <Plus size={16} />
-              첫 번째 링크 추가
+              <Plus size={16} />첫 번째 링크 추가
             </button>
           </div>
         ) : (
-          <div className={`grid gap-4 ${
-            config.layout === 'grid' 
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-              : 'grid-cols-1'
-          }`}>
+          <div
+            className={`grid gap-4 ${
+              config.layout === 'grid'
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                : 'grid-cols-1'
+            }`}
+          >
             {config.links.map((link) => (
               <div
                 key={link.id}
@@ -166,7 +184,7 @@ export function ExternalLinkMenuComponent({ menu, onUpdate }: MenuComponentProps
                       {link.name}
                     </h4>
                   </div>
-                  
+
                   {isEditing && (
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -264,21 +282,26 @@ interface LinkFormProps {
   isEditing?: boolean
 }
 
-function LinkForm({ initialData, onSubmit, onCancel, isEditing = false }: LinkFormProps) {
+function LinkForm({
+  initialData,
+  onSubmit,
+  onCancel,
+  isEditing = false,
+}: LinkFormProps) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     url: initialData?.url || '',
-    description: initialData?.description || ''
+    description: initialData?.description || '',
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim() || !formData.url.trim()) return
-    
+
     onSubmit({
       name: formData.name.trim(),
       url: formData.url.trim(),
-      description: formData.description.trim() || undefined
+      description: formData.description.trim() || undefined,
     })
   }
 
@@ -287,7 +310,7 @@ function LinkForm({ initialData, onSubmit, onCancel, isEditing = false }: LinkFo
       <h4 className="text-lg font-medium text-gray-900 mb-4">
         {isEditing ? '링크 편집' : '새 링크 추가'}
       </h4>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -323,7 +346,9 @@ function LinkForm({ initialData, onSubmit, onCancel, isEditing = false }: LinkFo
           </label>
           <textarea
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
             placeholder="링크에 대한 간단한 설명..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             rows={2}

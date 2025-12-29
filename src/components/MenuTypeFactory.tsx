@@ -1,13 +1,13 @@
-import { Users, FileText } from 'lucide-react'
+import { FileText, Users } from 'lucide-react'
+import { MenuType } from '../types/custom-menu'
+
+// Import menu type components
+import { PersonalMenuComponent } from './menu-types/PersonalMenuComponent'
 import type {
   CustomMenu,
   MenuComponentProps,
   MenuTypeConfig,
 } from '../types/custom-menu'
-import { MenuType } from '../types/custom-menu'
-
-// Import menu type components
-import { PersonalMenuComponent } from './menu-types/PersonalMenuComponent'
 
 // Menu type configuration registry
 const MENU_TYPE_CONFIGS: Record<MenuType, MenuTypeConfig> = {
@@ -95,13 +95,13 @@ export function getMenuTypeIcon(menuType: MenuType) {
   return config ? config.icon : FileText
 }
 
-export function getMenuTypeFeatures(menuType: MenuType): string[] {
+export function getMenuTypeFeatures(menuType: MenuType): Array<string> {
   const config = MENU_TYPE_CONFIGS[menuType]
   return config ? config.features : []
 }
 
-export function getAllMenuTypes(): MenuType[] {
-  return Object.keys(MENU_TYPE_CONFIGS) as MenuType[]
+export function getAllMenuTypes(): Array<MenuType> {
+  return Object.keys(MENU_TYPE_CONFIGS) as Array<MenuType>
 }
 
 export default MenuTypeFactory

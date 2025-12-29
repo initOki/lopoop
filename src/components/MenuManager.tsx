@@ -1,24 +1,24 @@
 import React, { useState } from 'react'
 import {
+  GripVertical,
   Plus,
   Settings,
-  Trash2,
-  GripVertical,
   Shield,
+  Trash2,
   Wifi,
 } from 'lucide-react'
 import { useCustomMenus } from '../hooks/useCustomMenus'
+import { MenuType } from '../types/custom-menu'
 import { MenuCreator } from './MenuCreator'
 import { MenuEditor } from './MenuEditor'
 import { MenuDeleteDialog } from './MenuDeleteDialog'
 import { MenuPermissionManager } from './MenuPermissionManager'
 import { SecurityMonitor, SecurityStatusIndicator } from './SecurityMonitor'
 import { NetworkStatusIndicator } from './NetworkStatusIndicator'
-import { MenuType } from '../types/custom-menu'
 import type {
-  MenuManagerProps,
   CustomMenu,
   CustomMenuInsert,
+  MenuManagerProps,
 } from '../types/custom-menu'
 
 /**

@@ -1,54 +1,489 @@
-import { useState } from 'react'
-import { User, Wallet, Calendar, Settings } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  CheckCircle2,
+  Circle,
+  Coins,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+  User,
+  UserPlus,
+  Clock,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  fetchCharacterProfile,
+  fetchCharacterSiblings,
+} from '../../features/characterSearch/loaApi'
+import { supabase } from '../../lib/supabase'
+import { raidList } from '../../lib/raid-list'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog'
+import {
+  shouldResetWeekly,
+  resetWeeklyRaids,
+  getNextWednesday6AM,
+} from '../../lib/weekly-reset'
 import type { MenuComponentProps } from '../../types/custom-menu'
-import PersonalDebtPage from './PersonalDebtPage'
-import PersonalSchedulePage from './PersonalSchedulePage'
 
-type PersonalTab = 'debt' | 'schedule' | 'settings'
+const MAX_CHARACTERS = 20
+const DEFAULT_CHARACTERS = 6
+
+interface PersonalCharacter {
+  id: string
+  user_id: string
+  menu_id: string
+  character_name: string
+  character_class: string
+  item_level: number
+  server_name: string
+  combat_power: string | null
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+interface PersonalCharacterRaid {
+  id: string
+  user_id: string
+  character_id: string
+  raid_name: string
+  min_item_level: number
+  is_cleared: boolean
+  clear_gold: number
+  can_receive_gold: boolean
+  display_order: number
+  created_at: string
+  updated_at: string
+}
 
 export function PersonalMenuComponent({ menu }: MenuComponentProps) {
-  const [activeTab, setActiveTab] = useState<PersonalTab>('debt')
-
-  // 사용자 ID 추출 (메뉴의 user_id 사용)
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+  const [isAddingCharacter, setIsAddingCharacter] = useState(false)
+  const [characters, setCharacters] = useState<Array<PersonalCharacter>>([])
+  const [characterRaids, setCharacterRaids] = useState<
+    Record<string, Array<PersonalCharacterRaid>>
+  >({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [showAddCharacterInput, setShowAddCharacterInput] = useState(false)
+  const [addCharacterKeyword, setAddCharacterKeyword] = useState('')
+  const [characterToDelete, setCharacterToDelete] =
+    useState<PersonalCharacter | null>(null)
   const userId = menu.user_id
+  const menuId = menu.id
 
-  const tabs = [
-    {
-      id: 'debt' as PersonalTab,
-      label: '빚 관리',
-      icon: Wallet,
-      description: '개인 빚을 관리합니다',
-    },
-    {
-      id: 'schedule' as PersonalTab,
-      label: '스케줄',
-      icon: Calendar,
-      description: '개인 스케줄을 관리합니다',
+  // 주간 골드 계산
+  const calculateWeeklyGold = () => {
+    const allRaids = Object.values(characterRaids).flat()
+
+    // 클리어한 레이드 중 골드 수령 가능한 레이드의 총 골드
+    const earnedGold = allRaids
+      .filter((raid) => raid.is_cleared && raid.can_receive_gold)
+      .reduce((sum, raid) => sum + raid.clear_gold, 0)
+
+    // 골드 수령 가능한 모든 레이드의 총 골드
+    const totalGold = allRaids
+      .filter((raid) => raid.can_receive_gold)
+      .reduce((sum, raid) => sum + raid.clear_gold, 0)
+
+    return { earnedGold, totalGold }
+  }
+
+  const { earnedGold, totalGold } = calculateWeeklyGold()
+
+  // 등록된 캐릭터 불러오기
+  useEffect(() => {
+    fetchCharacters()
+  }, [userId, menuId])
+
+  const fetchCharacters = async () => {
+    try {
+      setIsLoading(true)
+
+      // 1. 주간 초기화 확인 및 실행
+      const needsReset = await shouldResetWeekly(userId, menuId)
+      if (needsReset) {
+        await resetWeeklyRaids(userId, menuId)
+        toast.success('주간 레이드가 초기화되었습니다! (매주 수요일 오전 6시)')
+      }
+
+      // 2. 캐릭터 목록 불러오기
+      const { data, error } = await supabase
+        .from('personal_characters')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('menu_id', menuId)
+        .order('display_order', { ascending: true })
+
+      if (error) throw error
+      setCharacters(data || [])
+
+      // 3. 각 캐릭터의 레이드 정보 불러오기
+      if (data && data.length > 0) {
+        await fetchAllCharacterRaids(data.map((c) => c.id))
+      }
+    } catch (error) {
+      console.error('Error fetching characters:', error)
+      toast.error('캐릭터 목록을 불러오는데 실패했습니다.')
+    } finally {
+      setIsLoading(false)
     }
-  ]
+  }
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'debt':
-        return <PersonalDebtPage userId={userId} />
-      case 'schedule':
-        return <PersonalSchedulePage userId={userId} />
-      case 'settings':
-        return (
-          <div className="p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center gap-3 mb-6">
-                <Settings className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold text-foreground">개인 설정</h2>
-              </div>
-              <div className="bg-muted rounded-lg shadow p-8 text-center text-muted-foreground">
-                개인 설정 기능은 준비 중입니다.
-              </div>
-            </div>
-          </div>
-        )
-      default:
-        return null
+  // 모든 캐릭터의 레이드 정보 불러오기
+  const fetchAllCharacterRaids = async (characterIds: Array<string>) => {
+    try {
+      const { data, error } = await supabase
+        .from('personal_character_raids')
+        .select('*')
+        .in('character_id', characterIds)
+        .order('display_order', { ascending: true })
+
+      if (error) throw error
+
+      // 캐릭터 ID별로 레이드 그룹화
+      const raidsByCharacter: Record<string, Array<PersonalCharacterRaid>> = {}
+      data?.forEach((raid) => {
+        if (!raidsByCharacter[raid.character_id]) {
+          raidsByCharacter[raid.character_id] = []
+        }
+        raidsByCharacter[raid.character_id].push(raid)
+      })
+
+      setCharacterRaids(raidsByCharacter)
+    } catch (error) {
+      console.error('Error fetching character raids:', error)
+    }
+  }
+
+  // 캐릭터 레벨에 맞는 레이드 3개 찾기
+  const findSuitableRaids = (itemLevel: number) => {
+    // 캐릭터가 입장 가능한 레이드 필터링
+    const availableRaids = raidList.filter(
+      (raid) => itemLevel >= raid.minItemLevel,
+    )
+
+    // 레벨 기준 내림차순 정렬 후 상위 3개 선택
+    return availableRaids
+      .sort((a, b) => b.minItemLevel - a.minItemLevel)
+      .slice(0, 3)
+  }
+
+  // 캐릭터 검색 및 자동 등록
+  const handleSearch = async () => {
+    if (!searchKeyword.trim()) {
+      toast.error('캐릭터 이름을 입력해주세요.')
+      return
+    }
+
+    try {
+      setIsSearching(true)
+
+      // 1. 캐릭터 검색
+      const siblings = await fetchCharacterSiblings(searchKeyword.trim())
+
+      if (!siblings || siblings.length === 0) {
+        toast.error('캐릭터를 찾을 수 없습니다.')
+        return
+      }
+
+      // 2. 각 캐릭터의 전투력 정보 가져오기
+      const charactersWithStats = await Promise.all(
+        siblings.map(async (c) => {
+          const profile = await fetchCharacterProfile(c.CharacterName)
+          return {
+            CharacterName: c.CharacterName,
+            ItemLevel: Number(c.ItemAvgLevel.replace(/,/g, '')),
+            ServerName: c.ServerName,
+            CharacterClassName: c.CharacterClassName,
+            CombatPower: profile?.CombatPower,
+          }
+        }),
+      )
+
+      // 3. 아이템 레벨 기준으로 정렬하여 상위 6개 선택
+      const topCharacters = charactersWithStats
+        .sort((a, b) => b.ItemLevel - a.ItemLevel)
+        .slice(0, DEFAULT_CHARACTERS)
+
+      // 4. 기존 캐릭터 모두 삭제 (CASCADE로 레이드도 자동 삭제됨)
+      const { error: deleteError } = await supabase
+        .from('personal_characters')
+        .delete()
+        .eq('user_id', userId)
+        .eq('menu_id', menuId)
+
+      if (deleteError) throw deleteError
+
+      // 5. 새로운 캐릭터 등록
+      const charactersToInsert = topCharacters.map((char, index) => ({
+        user_id: userId,
+        menu_id: menuId,
+        character_name: char.CharacterName,
+        character_class: char.CharacterClassName,
+        item_level: char.ItemLevel,
+        server_name: char.ServerName,
+        combat_power: char.CombatPower || null,
+        display_order: index,
+      }))
+
+      const { data: insertedCharacters, error: insertError } = await supabase
+        .from('personal_characters')
+        .insert(charactersToInsert)
+        .select()
+
+      if (insertError) throw insertError
+
+      // 6. 각 캐릭터에 레벨에 맞는 레이드 3개 자동 추가
+      if (insertedCharacters) {
+        const raidsToInsert: Array<any> = []
+
+        insertedCharacters.forEach((char) => {
+          const suitableRaids = findSuitableRaids(char.item_level)
+          suitableRaids.forEach((raid, index) => {
+            raidsToInsert.push({
+              user_id: userId,
+              character_id: char.id,
+              raid_name: raid.name,
+              min_item_level: raid.minItemLevel,
+              clear_gold: raid.clearGold,
+              is_cleared: false,
+              can_receive_gold: true,
+              display_order: index,
+            })
+          })
+        })
+
+        if (raidsToInsert.length > 0) {
+          const { error: raidsError } = await supabase
+            .from('personal_character_raids')
+            .insert(raidsToInsert)
+
+          if (raidsError) throw raidsError
+        }
+      }
+
+      toast.success(
+        `상위 ${topCharacters.length}개 캐릭터와 레이드가 등록되었습니다.`,
+      )
+      setSearchKeyword('')
+      fetchCharacters()
+    } catch (error) {
+      console.error('Error searching characters:', error)
+      toast.error('캐릭터 검색에 실패했습니다.')
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // 개별 캐릭터 추가
+  const handleAddCharacter = async () => {
+    if (!addCharacterKeyword.trim()) {
+      toast.error('캐릭터 이름을 입력해주세요.')
+      return
+    }
+
+    if (characters.length >= MAX_CHARACTERS) {
+      toast.error(`최대 ${MAX_CHARACTERS}개까지만 등록할 수 있습니다.`)
+      return
+    }
+
+    try {
+      setIsAddingCharacter(true)
+
+      // 1. 캐릭터 검색
+      const siblings = await fetchCharacterSiblings(addCharacterKeyword.trim())
+
+      if (!siblings || siblings.length === 0) {
+        toast.error('캐릭터를 찾을 수 없습니다.')
+        return
+      }
+
+      // 2. 검색된 캐릭터 중 가장 레벨이 높은 캐릭터 선택
+      const sortedCharacters = siblings.sort((a, b) => {
+        const aLevel = Number(a.ItemAvgLevel.replace(/,/g, ''))
+        const bLevel = Number(b.ItemAvgLevel.replace(/,/g, ''))
+        return bLevel - aLevel
+      })
+
+      const targetCharacter = sortedCharacters[0]
+      const profile = await fetchCharacterProfile(targetCharacter.CharacterName)
+
+      // 3. 이미 등록된 캐릭터인지 확인
+      const existingCharacter = characters.find(
+        (c) => c.character_name === targetCharacter.CharacterName,
+      )
+
+      if (existingCharacter) {
+        toast.error('이미 등록된 캐릭터입니다.')
+        return
+      }
+
+      // 4. 새로운 display_order 계산
+      const maxOrder =
+        characters.length > 0
+          ? Math.max(...characters.map((c) => c.display_order))
+          : -1
+
+      // 5. 캐릭터 등록
+      const characterToInsert = {
+        user_id: userId,
+        menu_id: menuId,
+        character_name: targetCharacter.CharacterName,
+        character_class: targetCharacter.CharacterClassName,
+        item_level: Number(targetCharacter.ItemAvgLevel.replace(/,/g, '')),
+        server_name: targetCharacter.ServerName,
+        combat_power: profile?.CombatPower || null,
+        display_order: maxOrder + 1,
+      }
+
+      const { data: insertedCharacter, error: insertError } = await supabase
+        .from('personal_characters')
+        .insert(characterToInsert)
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+
+      // 6. 레벨에 맞는 레이드 3개 자동 추가
+      if (insertedCharacter) {
+        const suitableRaids = findSuitableRaids(insertedCharacter.item_level)
+        const raidsToInsert = suitableRaids.map((raid, index) => ({
+          user_id: userId,
+          character_id: insertedCharacter.id,
+          raid_name: raid.name,
+          min_item_level: raid.minItemLevel,
+          clear_gold: raid.clearGold,
+          is_cleared: false,
+          can_receive_gold: true,
+          display_order: index,
+        }))
+
+        if (raidsToInsert.length > 0) {
+          const { error: raidsError } = await supabase
+            .from('personal_character_raids')
+            .insert(raidsToInsert)
+
+          if (raidsError) throw raidsError
+        }
+      }
+
+      toast.success(`${targetCharacter.CharacterName} 캐릭터가 추가되었습니다.`)
+      setAddCharacterKeyword('')
+      setShowAddCharacterInput(false)
+      fetchCharacters()
+    } catch (error) {
+      console.error('Error adding character:', error)
+      toast.error('캐릭터 추가에 실패했습니다.')
+    } finally {
+      setIsAddingCharacter(false)
+    }
+  }
+
+  // 캐릭터 삭제 확인
+  const confirmDeleteCharacter = (character: PersonalCharacter) => {
+    setCharacterToDelete(character)
+  }
+
+  // 캐릭터 삭제 실행
+  const handleDeleteCharacter = async () => {
+    if (!characterToDelete) return
+
+    try {
+      const { error } = await supabase
+        .from('personal_characters')
+        .delete()
+        .eq('id', characterToDelete.id)
+        .eq('user_id', userId)
+
+      if (error) throw error
+
+      toast.success('캐릭터가 삭제되었습니다.')
+      setCharacterToDelete(null)
+      fetchCharacters()
+    } catch (error) {
+      console.error('Error deleting character:', error)
+      toast.error('캐릭터 삭제에 실패했습니다.')
+    }
+  }
+
+  // 레이드 클리어 상태 토글
+  const handleToggleRaidCleared = async (
+    raidId: string,
+    currentStatus: boolean,
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('personal_character_raids')
+        .update({ is_cleared: !currentStatus })
+        .eq('id', raidId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+
+      // 로컬 상태 업데이트
+      setCharacterRaids((prev) => {
+        const updated = { ...prev }
+        Object.keys(updated).forEach((charId) => {
+          updated[charId] = updated[charId].map((raid) =>
+            raid.id === raidId ? { ...raid, is_cleared: !currentStatus } : raid,
+          )
+        })
+        return updated
+      })
+
+      toast.success(currentStatus ? '클리어 해제되었습니다.' : '클리어 완료!')
+    } catch (error) {
+      console.error('Error toggling raid cleared:', error)
+      toast.error('레이드 상태 변경에 실패했습니다.')
+    }
+  }
+
+  // 골드 수령 가능 여부 토글
+  const handleToggleGoldReceivable = async (
+    raidId: string,
+    currentStatus: boolean,
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('personal_character_raids')
+        .update({ can_receive_gold: !currentStatus })
+        .eq('id', raidId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+
+      // 로컬 상태 업데이트
+      setCharacterRaids((prev) => {
+        const updated = { ...prev }
+        Object.keys(updated).forEach((charId) => {
+          updated[charId] = updated[charId].map((raid) =>
+            raid.id === raidId
+              ? { ...raid, can_receive_gold: !currentStatus }
+              : raid,
+          )
+        })
+        return updated
+      })
+
+      toast.success(
+        currentStatus
+          ? '골드 수령 불가로 변경되었습니다.'
+          : '골드 수령 가능으로 변경되었습니다.',
+      )
+    } catch (error) {
+      console.error('Error toggling gold receivable:', error)
+      toast.error('골드 수령 상태 변경에 실패했습니다.')
     }
   }
 
@@ -59,51 +494,383 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
         <div className="flex items-center gap-3">
           <User className="w-6 h-6 text-primary" />
           <div>
-            <h2 className="text-xl font-semibold text-foreground">{menu.name}</h2>
+            <h2 className="text-xl font-semibold text-foreground">
+              {menu.name}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              개인 빚 관리와 스케줄을 따로 관리할 수 있습니다
+              캐릭터를 검색하면 레벨이 높은 {DEFAULT_CHARACTERS}개 캐릭터가
+              자동으로 등록됩니다 (최대 {MAX_CHARACTERS}개)
             </p>
           </div>
         </div>
       </div>
 
-      {/* 탭 네비게이션 */}
-      <div className="border-b border-border">
-        <nav className="flex">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            return (
+      {/* 콘텐츠 영역 */}
+      <div className="min-h-100 p-6">
+        <div className="max-w-360 mx-auto space-y-6">
+          {/* 검색 영역 */}
+          <div className="bg-muted/30 rounded-lg py-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSearch()
+                }}
+                placeholder="캐릭터 이름을 입력하세요"
+                className="flex-1 px-4 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={isSearching}
+              />
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors
-                  ${
-                    activeTab === tab.id
-                      ? 'text-primary border-b-2 border-primary bg-primary/5'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }
-                `}
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Icon className="w-4 h-4" />
-                {tab.label}
+                {isSearching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    검색 중...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    검색
+                  </>
+                )}
               </button>
-            )
-          })}
-        </nav>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              * 검색하면 기존 캐릭터가 모두 삭제되고 새로운 상위{' '}
+              {DEFAULT_CHARACTERS}개 캐릭터로 교체됩니다.
+            </p>
+          </div>
+
+          {/* 주간 골드 요약 */}
+          {characters.length > 0 && (
+            <div className="bg-linear-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <Coins className="w-6 h-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      주간 골드 획득량
+                    </h3>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-bold text-yellow-500">
+                        {earnedGold.toLocaleString()}
+                      </span>
+                      <span className="text-lg text-muted-foreground">/</span>
+                      <span className="text-lg font-semibold text-foreground">
+                        {totalGold.toLocaleString()}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        골드
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground mb-1">
+                    진행률
+                  </div>
+                  <div className="text-2xl font-bold text-primary">
+                    {totalGold > 0
+                      ? Math.round((earnedGold / totalGold) * 100)
+                      : 0}
+                    %
+                  </div>
+                </div>
+              </div>
+              {/* 프로그레스 바 */}
+              <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 transition-all duration-500"
+                  style={{
+                    width: `${totalGold > 0 ? (earnedGold / totalGold) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              {/* 다음 초기화 시간 */}
+              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>
+                  다음 초기화:{' '}
+                  {getNextWednesday6AM().toLocaleString('ko-KR', {
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    timeZone: 'Asia/Seoul',
+                  })}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* 캐릭터 목록 */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                등록된 캐릭터 ({characters.length}/{MAX_CHARACTERS})
+              </h3>
+
+              {/* 캐릭터 추가 버튼 */}
+              {characters.length < MAX_CHARACTERS && characters.length > 0 && (
+                <button
+                  onClick={() =>
+                    setShowAddCharacterInput(!showAddCharacterInput)
+                  }
+                  className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors text-sm font-medium"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  캐릭터 추가
+                </button>
+              )}
+            </div>
+
+            {/* 캐릭터 추가 입력 영역 */}
+            {showAddCharacterInput && (
+              <div className="bg-muted/30 rounded-lg py-4 mb-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={addCharacterKeyword}
+                    onChange={(e) => setAddCharacterKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddCharacter()
+                      if (e.key === 'Escape') {
+                        setShowAddCharacterInput(false)
+                        setAddCharacterKeyword('')
+                      }
+                    }}
+                    placeholder="추가할 캐릭터 이름을 입력하세요"
+                    className="flex-1 px-4 py-2 bg-background border border-border text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={isAddingCharacter}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleAddCharacter}
+                    disabled={isAddingCharacter}
+                    className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAddingCharacter ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        추가 중...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        추가
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddCharacterInput(false)
+                      setAddCharacterKeyword('')
+                    }}
+                    className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                  >
+                    취소
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  * 검색된 캐릭터 중 가장 레벨이 높은 캐릭터가 추가됩니다.
+                </p>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : characters.length === 0 ? (
+              <div className="bg-muted rounded-lg shadow p-8 text-center text-muted-foreground">
+                등록된 캐릭터가 없습니다. 캐릭터를 검색해주세요.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {characters.map((char) => {
+                  const raids = characterRaids[char.id] || []
+                  const clearedCount = raids.filter((r) => r.is_cleared).length
+
+                  return (
+                    <div
+                      key={char.id}
+                      className="bg-background border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      {/* 캐릭터 헤더 */}
+                      <div className="p-4 bg-muted/30 relative">
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={() => confirmDeleteCharacter(char)}
+                            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-start gap-3 pr-8">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-foreground truncate">
+                              {char.character_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {char.character_class}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              <span className="font-medium text-primary">
+                                Lv. {char.item_level.toLocaleString()}
+                              </span>
+                              <span>•</span>
+                              <span className="truncate">
+                                {char.server_name}
+                              </span>
+                            </div>
+                            {char.combat_power && (
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                전투력 {char.combat_power}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 레이드 목록 */}
+                      {raids.length > 0 && (
+                        <div className="p-4 border-t border-border">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                              레이드
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {clearedCount}/{raids.length}
+                              </span>
+                              <span className="text-xs text-yellow-500 font-medium">
+                                {raids
+                                  .filter((r) => r.can_receive_gold)
+                                  .reduce((sum, r) => sum + r.clear_gold, 0)
+                                  .toLocaleString()}
+                                G
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {raids.map((raid) => (
+                              <div
+                                key={raid.id}
+                                className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                              >
+                                {/* 클리어 체크박스 */}
+                                <button
+                                  className="shrink-0 transition-colors mt-0.5"
+                                  onClick={() =>
+                                    handleToggleRaidCleared(
+                                      raid.id,
+                                      raid.is_cleared,
+                                    )
+                                  }
+                                >
+                                  {raid.is_cleared ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <Circle className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                                  )}
+                                </button>
+
+                                {/* 레이드 정보 */}
+                                <div className="flex-1 min-w-0">
+                                  <div
+                                    className={`text-xs font-medium leading-tight ${raid.is_cleared ? 'text-muted-foreground line-through' : 'text-foreground'}`}
+                                  >
+                                    {raid.raid_name}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                    <span>입장 {raid.min_item_level}</span>
+                                    <span>•</span>
+                                    <span className="text-yellow-500 font-medium">
+                                      {raid.clear_gold.toLocaleString()}G
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* 골드 수령 가능 토글 */}
+                                <button
+                                  className="flex-shrink-0 transition-colors mt-0.5"
+                                  onClick={() =>
+                                    handleToggleGoldReceivable(
+                                      raid.id,
+                                      raid.can_receive_gold,
+                                    )
+                                  }
+                                  title={
+                                    raid.can_receive_gold
+                                      ? '골드 수령 가능'
+                                      : '골드 수령 불가'
+                                  }
+                                >
+                                  <Coins
+                                    className={`w-4 h-4 ${
+                                      raid.can_receive_gold
+                                        ? 'text-yellow-500'
+                                        : 'text-muted-foreground'
+                                    } hover:scale-110 transition-transform`}
+                                  />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* 탭 설명 */}
-      <div className="px-6 py-3 bg-muted/30 border-b border-border">
-        <p className="text-sm text-muted-foreground">
-          {tabs.find((tab) => tab.id === activeTab)?.description}
-        </p>
-      </div>
-
-      {/* 탭 콘텐츠 */}
-      <div className="min-h-[400px]">
-        {renderTabContent()}
-      </div>
+      {/* 캐릭터 삭제 확인 다이얼로그 */}
+      <AlertDialog
+        open={characterToDelete !== null}
+        onOpenChange={(open) => !open && setCharacterToDelete(null)}
+      >
+        <AlertDialogContent className="bg-gray-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle>캐릭터 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold text-foreground">
+                {characterToDelete?.character_name}
+              </span>{' '}
+              캐릭터를 삭제하시겠습니까?
+              <br />
+              <span className="text-destructive">
+                이 작업은 되돌릴 수 없으며, 해당 캐릭터의 모든 레이드 정보도
+                함께 삭제됩니다.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCharacterToDelete(null)}>
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCharacter}
+              className="border"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

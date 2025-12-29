@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react'
-import { Users, Shield, Eye, EyeOff, UserPlus, UserMinus, Crown, Settings } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  Crown,
+  Eye,
+  EyeOff,
+  Settings,
+  Shield,
+  UserMinus,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useMenuMembers } from '../hooks/useMenuMembers'
 import { useMenuPermissions } from '../hooks/useMenuPermissions'
 import { MemberRole } from '../lib/menu-permissions'
@@ -16,12 +25,21 @@ interface MenuPermissionManagerProps {
  * 메뉴 권한 관리 컴포넌트
  * 요구사항 7.3: 메뉴 접근 권한 확인 및 동적 가시성 업데이트
  */
-export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionManagerProps) {
+export function MenuPermissionManager({
+  menu,
+  userId,
+  onClose,
+}: MenuPermissionManagerProps) {
   const [access, setAccess] = useState<MenuAccessInfo | null>(null)
   const [isPrivate, setIsPrivate] = useState(false)
   const [loading, setLoading] = useState(true)
-  
-  const { members, loading: membersLoading, removeMember, refreshMembers } = useMenuMembers(menu.id)
+
+  const {
+    members,
+    loading: membersLoading,
+    removeMember,
+    refreshMembers,
+  } = useMenuMembers(menu.id)
   const { checkAccess, updateRole, updatePrivacy } = useMenuPermissions(userId)
 
   // 역할별 한국어 이름
@@ -59,7 +77,7 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
         setLoading(true)
         const menuAccess = await checkAccess(menu.id)
         setAccess(menuAccess)
-        
+
         // 메뉴 설정에서 공개/비공개 상태 확인
         const config = menu.config as any
         setIsPrivate(config?.isPrivate || false)
@@ -85,7 +103,10 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
   }
 
   // 멤버 역할 변경
-  const handleRoleChange = async (targetUserId: string, newRole: MemberRole) => {
+  const handleRoleChange = async (
+    targetUserId: string,
+    newRole: MemberRole,
+  ) => {
     try {
       await updateRole(menu.id, targetUserId, newRole)
       await refreshMembers()
@@ -123,7 +144,9 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
         <div className="bg-white rounded-lg p-6 max-w-md w-full">
           <div className="text-center">
             <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">접근 권한 없음</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              접근 권한 없음
+            </h2>
             <p className="text-gray-600 mb-4">
               {access?.reason || '이 메뉴의 권한을 관리할 수 없습니다'}
             </p>
@@ -188,10 +211,9 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
               </label>
             </div>
             <p className="text-sm text-gray-500">
-              {isPrivate 
+              {isPrivate
                 ? '멤버만 이 그룹에 접근할 수 있습니다'
-                : '모든 사용자가 이 그룹을 볼 수 있습니다 (읽기 전용)'
-              }
+                : '모든 사용자가 이 그룹을 볼 수 있습니다 (읽기 전용)'}
             </p>
           </div>
 
@@ -225,7 +247,7 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
                   const RoleIcon = getRoleIcon(member.role)
                   const isOwner = member.role === MemberRole.OWNER
                   const canModify = !isOwner && member.user_id !== userId
-                  
+
                   return (
                     <div
                       key={member.id}
@@ -239,8 +261,8 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
                             {member.user_id === userId && ' (나)'}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {getRoleName(member.role)} • 
-                            가입일: {new Date(member.joined_at).toLocaleDateString()}
+                            {getRoleName(member.role)} • 가입일:{' '}
+                            {new Date(member.joined_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -250,7 +272,12 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
                           {/* 역할 변경 */}
                           <select
                             value={member.role}
-                            onChange={(e) => handleRoleChange(member.user_id, e.target.value as MemberRole)}
+                            onChange={(e) =>
+                              handleRoleChange(
+                                member.user_id,
+                                e.target.value as MemberRole,
+                              )
+                            }
                             className="text-sm border border-gray-300 rounded px-2 py-1"
                           >
                             <option value={MemberRole.MEMBER}>멤버</option>
@@ -278,9 +305,15 @@ export function MenuPermissionManager({ menu, userId, onClose }: MenuPermissionM
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">역할별 권한</h4>
             <div className="space-y-1 text-sm text-blue-800">
-              <div><strong>소유자:</strong> 모든 권한 (삭제, 멤버 관리, 편집, 보기)</div>
-              <div><strong>관리자:</strong> 멤버 관리, 편집, 보기 (삭제 불가)</div>
-              <div><strong>멤버:</strong> 보기만 가능</div>
+              <div>
+                <strong>소유자:</strong> 모든 권한 (삭제, 멤버 관리, 편집, 보기)
+              </div>
+              <div>
+                <strong>관리자:</strong> 멤버 관리, 편집, 보기 (삭제 불가)
+              </div>
+              <div>
+                <strong>멤버:</strong> 보기만 가능
+              </div>
             </div>
           </div>
         </div>

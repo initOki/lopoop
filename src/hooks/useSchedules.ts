@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { supabase } from '@/lib/supabase'
 import type { RaidSchedule, ScheduleRow } from '@/types/schedule'
-import { rowToSchedule, getNextWednesday6AM } from '@/utils/scheduleUtils'
+import { supabase } from '@/lib/supabase'
+import { getNextWednesday6AM, rowToSchedule } from '@/utils/scheduleUtils'
 
 const LAST_RESET_KEY = 'raid_schedule_last_reset'
 
 export function useSchedules() {
-  const [schedules, setSchedules] = useState<RaidSchedule[]>([])
+  const [schedules, setSchedules] = useState<Array<RaidSchedule>>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // 매주 수요일 오전 6시 체크 및 초기화
@@ -64,7 +64,7 @@ export function useSchedules() {
 
       if (error) throw error
 
-      const formatted: RaidSchedule[] = (data || []).map(rowToSchedule)
+      const formatted: Array<RaidSchedule> = (data || []).map(rowToSchedule)
       setSchedules(formatted)
     } catch (error) {
       console.error('Error fetching schedules:', error)

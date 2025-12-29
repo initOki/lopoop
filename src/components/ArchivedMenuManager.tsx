@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
-import { RotateCcw, Trash2, Clock, AlertCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, Clock, RotateCcw, Trash2 } from 'lucide-react'
 import {
-  getUserArchivedMenus,
-  restoreArchivedMenu,
   getTimeUntilExpiry,
+  getUserArchivedMenus,
   isMenuRecoverable,
+  restoreArchivedMenu,
 } from '../lib/menu-archive-utils'
 import { MenuType } from '../types/custom-menu'
 import type { ArchivedMenu } from '../lib/menu-archive-utils'
@@ -22,7 +22,7 @@ export function ArchivedMenuManager({
   userId,
   onMenuRestored,
 }: ArchivedMenuManagerProps) {
-  const [archivedMenus, setArchivedMenus] = useState<ArchivedMenu[]>([])
+  const [archivedMenus, setArchivedMenus] = useState<Array<ArchivedMenu>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [restoringMenuId, setRestoringMenuId] = useState<string | null>(null)

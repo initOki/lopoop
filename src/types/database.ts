@@ -4,7 +4,7 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Array<Json>
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -19,7 +19,13 @@ export type Database = {
           id: string
           user_id: string
           name: string
-          type: 'group' | 'personal' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          type:
+            | 'group'
+            | 'personal'
+            | 'dashboard'
+            | 'external_link'
+            | 'custom_page'
+            | 'project'
           config: Json
           menu_order: number
           created_at: string
@@ -29,7 +35,13 @@ export type Database = {
           id?: string
           user_id: string
           name: string
-          type: 'group' | 'personal' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          type:
+            | 'group'
+            | 'personal'
+            | 'dashboard'
+            | 'external_link'
+            | 'custom_page'
+            | 'project'
           config?: Json
           menu_order?: number
           created_at?: string
@@ -39,7 +51,13 @@ export type Database = {
           id?: string
           user_id?: string
           name?: string
-          type?: 'group' | 'personal' | 'dashboard' | 'external_link' | 'custom_page' | 'project'
+          type?:
+            | 'group'
+            | 'personal'
+            | 'dashboard'
+            | 'external_link'
+            | 'custom_page'
+            | 'project'
           config?: Json
           menu_order?: number
           created_at?: string
@@ -47,12 +65,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "custom_menus_menu_members_fkey"
-            columns: ["id"]
+            foreignKeyName: 'custom_menus_menu_members_fkey'
+            columns: ['id']
             isOneToMany: true
-            referencedRelation: "menu_members"
-            referencedColumns: ["menu_id"]
-          }
+            referencedRelation: 'menu_members'
+            referencedColumns: ['menu_id']
+          },
         ]
       }
       archived_menus: {
@@ -100,12 +118,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "archived_menu_members_archived_menu_id_fkey"
-            columns: ["id"]
+            foreignKeyName: 'archived_menu_members_archived_menu_id_fkey'
+            columns: ['id']
             isOneToMany: true
-            referencedRelation: "archived_menu_members"
-            referencedColumns: ["archived_menu_id"]
-          }
+            referencedRelation: 'archived_menu_members'
+            referencedColumns: ['archived_menu_id']
+          },
         ]
       }
       archived_menu_members: {
@@ -141,12 +159,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "archived_menu_members_archived_menu_id_fkey"
-            columns: ["archived_menu_id"]
+            foreignKeyName: 'archived_menu_members_archived_menu_id_fkey'
+            columns: ['archived_menu_id']
             isOneToMany: false
-            referencedRelation: "archived_menus"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'archived_menus'
+            referencedColumns: ['id']
+          },
         ]
       }
       debts: {
@@ -209,12 +227,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "menu_members_menu_id_fkey"
-            columns: ["menu_id"]
+            foreignKeyName: 'menu_members_menu_id_fkey'
+            columns: ['menu_id']
             isOneToMany: false
-            referencedRelation: "custom_menus"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'custom_menus'
+            referencedColumns: ['id']
+          },
         ]
       }
       personal_debts: {
@@ -263,7 +281,7 @@ export type Database = {
           title: string
           description: string | null
           type: 'raid'
-          participants: string[]
+          participants: Array<string>
           is_completed: boolean
           created_at: string
           updated_at: string
@@ -274,7 +292,7 @@ export type Database = {
           title: string
           description?: string | null
           type?: 'raid'
-          participants?: string[]
+          participants?: Array<string>
           is_completed?: boolean
           created_at?: string
           updated_at?: string
@@ -285,8 +303,127 @@ export type Database = {
           title?: string
           description?: string | null
           type?: 'raid'
-          participants?: string[]
+          participants?: Array<string>
           is_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      personal_characters: {
+        Row: {
+          id: string
+          user_id: string
+          menu_id: string
+          character_name: string
+          character_class: string
+          item_level: number
+          server_name: string
+          combat_power: string | null
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          menu_id: string
+          character_name: string
+          character_class: string
+          item_level: number
+          server_name: string
+          combat_power?: string | null
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          menu_id?: string
+          character_name?: string
+          character_class?: string
+          item_level?: number
+          server_name?: string
+          combat_power?: string | null
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      personal_character_raids: {
+        Row: {
+          id: string
+          user_id: string
+          character_id: string
+          raid_name: string
+          min_item_level: number
+          is_cleared: boolean
+          clear_gold: number
+          can_receive_gold: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          character_id: string
+          raid_name: string
+          min_item_level: number
+          is_cleared?: boolean
+          clear_gold?: number
+          can_receive_gold?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          character_id?: string
+          raid_name?: string
+          min_item_level?: number
+          is_cleared?: boolean
+          clear_gold?: number
+          can_receive_gold?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'personal_character_raids_character_id_fkey'
+            columns: ['character_id']
+            isOneToMany: false
+            referencedRelation: 'personal_characters'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      personal_character_raids_reset: {
+        Row: {
+          id: string
+          user_id: string
+          menu_id: string
+          last_reset_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          menu_id: string
+          last_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          menu_id?: string
+          last_reset_at?: string
           created_at?: string
           updated_at?: string
         }

@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react'
-import { getCurrentUser, onAuthStateChange, signInAnonymously } from '../lib/auth'
-import type { User, Session } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react'
+import {
+  getCurrentUser,
+  onAuthStateChange,
+  signInAnonymously,
+} from '../lib/auth'
+import type { Session, User } from '@supabase/supabase-js'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -13,10 +17,11 @@ export function useAuth() {
       try {
         const currentUser = await getCurrentUser()
         setUser(currentUser)
-        
+
         // 사용자가 없으면 익명 로그인
         if (!currentUser) {
-          const { user: anonUser, session: anonSession } = await signInAnonymously()
+          const { user: anonUser, session: anonSession } =
+            await signInAnonymously()
           setUser(anonUser)
           setSession(anonSession)
         }
@@ -30,7 +35,9 @@ export function useAuth() {
     loadUser()
 
     // 인증 상태 변화 리스너
-    const { data: { subscription } } = onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session)
       setSession(session)
       setUser(session?.user ?? null)
@@ -46,6 +53,6 @@ export function useAuth() {
     user,
     session,
     loading,
-    userId: user?.id || null
+    userId: user?.id || null,
   }
 }

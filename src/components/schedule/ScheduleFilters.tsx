@@ -1,3 +1,4 @@
+import type { FilterCompleted, ScheduleFilters } from '@/types/schedule'
 import {
   Select,
   SelectContent,
@@ -5,7 +6,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { ScheduleFilters, FilterCompleted } from '@/types/schedule'
 
 type Props = {
   filters: ScheduleFilters

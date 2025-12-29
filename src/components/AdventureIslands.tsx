@@ -1,6 +1,6 @@
 // components/AdventureIslands.tsx
-import { useState, useEffect } from 'react'
-import { MapPin, Skull, Anchor } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Anchor, MapPin, Skull } from 'lucide-react'
 
 const API_BASE = 'https://developer-lostark.game.onstove.com'
 
@@ -8,7 +8,7 @@ interface CalendarItem {
   CategoryName: string
   ContentsName: string
   ContentsIcon: string
-  StartTimes: string[]
+  StartTimes: Array<string>
   RewardItems: Array<{
     Items: Array<{
       Name: string
@@ -24,9 +24,9 @@ interface ContentWithTime extends CalendarItem {
 }
 
 export default function AdventureIslands() {
-  const [islands, setIslands] = useState<ContentWithTime[]>([])
-  const [chaosGates, setChaosGates] = useState<ContentWithTime[]>([])
-  const [fieldBosses, setFieldBosses] = useState<ContentWithTime[]>([])
+  const [islands, setIslands] = useState<Array<ContentWithTime>>([])
+  const [chaosGates, setChaosGates] = useState<Array<ContentWithTime>>([])
+  const [fieldBosses, setFieldBosses] = useState<Array<ContentWithTime>>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -52,22 +52,24 @@ export default function AdventureIslands() {
   }, [])
 
   const updateTimeRemaining = () => {
-    const update = (items: ContentWithTime[]) =>
-      items.map(item => ({
+    const update = (items: Array<ContentWithTime>) =>
+      items.map((item) => ({
         ...item,
-        timeRemaining: item.nextStartTime ? calculateTimeRemaining(item.nextStartTime) : '정보 없음'
+        timeRemaining: item.nextStartTime
+          ? calculateTimeRemaining(item.nextStartTime)
+          : '정보 없음',
       }))
 
-    setIslands(prev => update(prev))
-    setChaosGates(prev => update(prev))
-    setFieldBosses(prev => update(prev))
+    setIslands((prev) => update(prev))
+    setChaosGates((prev) => update(prev))
+    setFieldBosses((prev) => update(prev))
   }
 
   const fetchCalendarData = async () => {
     try {
       setIsLoading(true)
       const apiKey = import.meta.env.VITE_LOA_API_KEY
-      
+
       if (!apiKey) {
         console.error('API Key not found')
         setIsLoading(false)
@@ -76,21 +78,27 @@ export default function AdventureIslands() {
 
       const response = await fetch(`${API_BASE}/gamecontents/calendar`, {
         headers: {
-          'accept': 'application/json',
-          'authorization': `bearer ${apiKey}`
-        }
+          accept: 'application/json',
+          authorization: `bearer ${apiKey}`,
+        },
       })
 
       if (!response.ok) {
         throw new Error(`Failed to fetch calendar: ${response.status}`)
       }
 
-      const data: CalendarItem[] = await response.json()
-      
+      const data: Array<CalendarItem> = await response.json()
+
       // 카테고리별로 필터링
-      const adventureIslands = data.filter(item => item.CategoryName === '모험 섬')
-      const chaosGates = data.filter(item => item.CategoryName === '카오스게이트')
-      const fieldBosses = data.filter(item => item.CategoryName === '필드보스')
+      const adventureIslands = data.filter(
+        (item) => item.CategoryName === '모험 섬',
+      )
+      const chaosGates = data.filter(
+        (item) => item.CategoryName === '카오스게이트',
+      )
+      const fieldBosses = data.filter(
+        (item) => item.CategoryName === '필드보스',
+      )
 
       // 시간 계산 및 정렬
       setIslands(processItems(adventureIslands))
@@ -103,13 +111,15 @@ export default function AdventureIslands() {
     }
   }
 
-  const processItems = (items: CalendarItem[]): ContentWithTime[] => {
-    const itemsWithTime = items.map(item => {
+  const processItems = (items: Array<CalendarItem>): Array<ContentWithTime> => {
+    const itemsWithTime = items.map((item) => {
       const nextTime = getNextStartTime(item.StartTimes)
       return {
         ...item,
         nextStartTime: nextTime,
-        timeRemaining: nextTime ? calculateTimeRemaining(nextTime) : '정보 없음'
+        timeRemaining: nextTime
+          ? calculateTimeRemaining(nextTime)
+          : '정보 없음',
       }
     })
 
@@ -121,13 +131,13 @@ export default function AdventureIslands() {
     })
   }
 
-  const getNextStartTime = (startTimes: string[]): Date | null => {
+  const getNextStartTime = (startTimes: Array<string>): Date | null => {
     const now = new Date()
-        
+
     for (const timeStr of startTimes) {
       // ISO 형식 문자열을 Date 객체로 변환
       const startTime = new Date(timeStr)
-      
+
       if (startTime > now) {
         return startTime
       }
@@ -139,26 +149,26 @@ export default function AdventureIslands() {
   const calculateTimeRemaining = (targetTime: Date): string => {
     const now = new Date()
     const diff = targetTime.getTime() - now.getTime()
-    
+
     if (diff < 0) return '진행 중'
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
     const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-        
+
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
   }
 
-  const ContentSection = ({ 
-    title, 
-    icon: Icon, 
-    items, 
+  const ContentSection = ({
+    title,
+    icon: Icon,
+    items,
     iconColor,
-    showOnlyTime = false
-  }: { 
+    showOnlyTime = false,
+  }: {
     title: string
     icon: any
-    items: ContentWithTime[]
+    items: Array<ContentWithTime>
     iconColor: string
     showOnlyTime?: boolean
   }) => {
@@ -182,7 +192,9 @@ export default function AdventureIslands() {
       return (
         <div className="flex items-center gap-3">
           <Icon className={iconColor} size={18} />
-          <h3 className="text-base font-semibold text-white min-w-[100px]">{title}</h3>
+          <h3 className="text-base font-semibold text-white min-w-[100px]">
+            {title}
+          </h3>
           <div className="text-blue-400 font-mono text-sm">
             {nextItem.timeRemaining}
           </div>
@@ -204,15 +216,15 @@ export default function AdventureIslands() {
               className="bg-gray-700 rounded-lg p-3 hover:bg-gray-650 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <img 
-                  src={item.ContentsIcon} 
+                <img
+                  src={item.ContentsIcon}
                   alt={item.ContentsName}
                   className="w-12 h-12 rounded"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
                   }}
                 />
-                
+
                 <div className="flex-1 min-w-0">
                   <h4 className="text-white font-medium text-sm truncate">
                     {item.ContentsName}
@@ -220,24 +232,27 @@ export default function AdventureIslands() {
                   <div className="text-blue-400 font-mono text-sm mt-1">
                     {item.timeRemaining}
                   </div>
-                  
+
                   {/* 보상 아이템 */}
-                  {item.RewardItems.length > 0 && item.RewardItems[0].Items.length > 0 && (
-                    <div className="flex gap-1 mt-2">
-                      {item.RewardItems[0].Items.slice(0, 4).map((rewardItem, rewardIdx) => (
-                        <img 
-                          key={rewardIdx}
-                          src={rewardItem.Icon} 
-                          alt={rewardItem.Name}
-                          className="w-6 h-6 rounded border border-gray-600"
-                          title={rewardItem.Name}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  {item.RewardItems.length > 0 &&
+                    item.RewardItems[0].Items.length > 0 && (
+                      <div className="flex gap-1 mt-2">
+                        {item.RewardItems[0].Items.slice(0, 4).map(
+                          (rewardItem, rewardIdx) => (
+                            <img
+                              key={rewardIdx}
+                              src={rewardItem.Icon}
+                              alt={rewardItem.Name}
+                              className="w-6 h-6 rounded border border-gray-600"
+                              title={rewardItem.Name}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          ),
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
@@ -258,28 +273,28 @@ export default function AdventureIslands() {
   return (
     <div className="bg-gray-800 rounded-xl shadow-xl p-6">
       <h2 className="text-2xl font-bold text-white mb-6">오늘의 일정</h2>
-      
+
       {/* 모험섬 */}
-      <ContentSection 
-        title="모험섬" 
-        icon={MapPin} 
+      <ContentSection
+        title="모험섬"
+        icon={MapPin}
         items={islands}
         iconColor="text-blue-400"
       />
 
       {/* 카오스게이트 & 필드보스 - 맨 아래 같은 줄에 */}
       <div className="bg-gray-700 rounded-lg p-4 space-y-3">
-        <ContentSection 
-          title="카오스게이트" 
-          icon={Anchor} 
+        <ContentSection
+          title="카오스게이트"
+          icon={Anchor}
           items={chaosGates}
           iconColor="text-purple-400"
           showOnlyTime={true}
         />
-        
-        <ContentSection 
-          title="필드보스" 
-          icon={Skull} 
+
+        <ContentSection
+          title="필드보스"
+          icon={Skull}
           items={fieldBosses}
           iconColor="text-red-400"
           showOnlyTime={true}

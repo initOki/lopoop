@@ -10,16 +10,16 @@ export interface SecurityConfig {
   maxNameLength: number
   maxConfigSize: number
   maxContentLength: number
-  allowedProtocols: string[]
-  blockedDomains: string[]
+  allowedProtocols: Array<string>
+  blockedDomains: Array<string>
   rateLimitWindow: number // milliseconds
   maxActionsPerWindow: number
 }
 
 export interface ValidationResult {
   isValid: boolean
-  errors: string[]
-  warnings: string[]
+  errors: Array<string>
+  warnings: Array<string>
   sanitizedValue?: any
 }
 
@@ -35,13 +35,9 @@ const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
   maxConfigSize: 10000, // 10KB
   maxContentLength: 100000, // 100KB
   allowedProtocols: ['http:', 'https:', 'mailto:'],
-  blockedDomains: [
-    'malware.com',
-    'phishing.net',
-    'spam.org'
-  ],
+  blockedDomains: ['malware.com', 'phishing.net', 'spam.org'],
   rateLimitWindow: 60000, // 1 minute
-  maxActionsPerWindow: 30
+  maxActionsPerWindow: 30,
 }
 
 // Rate limiting storage
@@ -56,47 +52,60 @@ const MALICIOUS_PATTERNS = [
   /javascript:/gi,
   /vbscript:/gi,
   /data:text\/html/gi,
-  
+
   // Event handlers
   /on\w+\s*=/gi,
-  
+
   // SQL injection patterns
   /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)/gi,
-  
+
   // XSS patterns
   /(<|%3C)(\/?)(script|iframe|object|embed|form|input|meta|link)/gi,
-  
+
   // Suspicious URLs
   /bit\.ly|tinyurl|t\.co|goo\.gl|short\.link/gi,
-  
+
   // Base64 encoded scripts
   /data:text\/javascript;base64/gi,
-  
+
   // HTML entities that could be used for obfuscation
-  /&#x?[0-9a-f]+;/gi
+  /&#x?[0-9a-f]+;/gi,
 ]
 
 /**
  * Suspicious keywords that might indicate malicious intent
  */
 const SUSPICIOUS_KEYWORDS = [
-  'eval', 'exec', 'system', 'shell_exec', 'passthru',
-  'document.cookie', 'localStorage', 'sessionStorage',
-  'XMLHttpRequest', 'fetch', 'import', 'require',
-  'crypto', 'btoa', 'atob', 'unescape', 'decodeURI'
+  'eval',
+  'exec',
+  'system',
+  'shell_exec',
+  'passthru',
+  'document.cookie',
+  'localStorage',
+  'sessionStorage',
+  'XMLHttpRequest',
+  'fetch',
+  'import',
+  'require',
+  'crypto',
+  'btoa',
+  'atob',
+  'unescape',
+  'decodeURI',
 ]
 
 /**
  * Validates and sanitizes menu name input
  */
 export function validateMenuName(
-  name: string, 
-  existingNames: string[] = [],
-  config: Partial<SecurityConfig> = {}
+  name: string,
+  existingNames: Array<string> = [],
+  config: Partial<SecurityConfig> = {},
 ): ValidationResult {
   const cfg = { ...DEFAULT_SECURITY_CONFIG, ...config }
-  const errors: string[] = []
-  const warnings: string[] = []
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
 
   // Basic validation
   if (!name || name.trim().length === 0) {
@@ -112,7 +121,8 @@ export function validateMenuName(
   }
 
   // Character validation (Korean, English, numbers, safe special chars)
-  const allowedCharsRegex = /^[가-힣a-zA-Z0-9\s\-_!@#$%^&*()+=\[\]{}|;:'"<>,.?/~`]+$/
+  const allowedCharsRegex =
+    /^[가-힣a-zA-Z0-9\s\-_!@#$%^&*()+=\[\]{}|;:'"<>,.?/~`]+$/
   if (!allowedCharsRegex.test(trimmedName)) {
     errors.push('메뉴 이름에 허용되지 않는 문자가 포함되어 있습니다')
   }
@@ -135,7 +145,7 @@ export function validateMenuName(
     isValid: errors.length === 0,
     errors,
     warnings,
-    sanitizedValue: sanitizedName
+    sanitizedValue: sanitizedName,
   }
 }
 
@@ -144,11 +154,11 @@ export function validateMenuName(
  */
 export function validateMenuConfig(
   config: any,
-  securityConfig: Partial<SecurityConfig> = {}
+  securityConfig: Partial<SecurityConfig> = {},
 ): ValidationResult {
   const cfg = { ...DEFAULT_SECURITY_CONFIG, ...securityConfig }
-  const errors: string[] = []
-  const warnings: string[] = []
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
 
   // Size validation
   const configSize = JSON.stringify(config).length
@@ -158,7 +168,7 @@ export function validateMenuConfig(
 
   // Deep validation of config content
   const sanitizedConfig = sanitizeConfigObject(config, cfg)
-  
+
   // Check for suspicious content in config values
   const configString = JSON.stringify(config)
   const maliciousCheck = detectMaliciousContent(configString)
@@ -170,7 +180,7 @@ export function validateMenuConfig(
     isValid: errors.length === 0,
     errors,
     warnings,
-    sanitizedValue: sanitizedConfig
+    sanitizedValue: sanitizedConfig,
   }
 }
 
@@ -179,11 +189,11 @@ export function validateMenuConfig(
  */
 export function validateUrl(
   url: string,
-  config: Partial<SecurityConfig> = {}
+  config: Partial<SecurityConfig> = {},
 ): ValidationResult {
   const cfg = { ...DEFAULT_SECURITY_CONFIG, ...config }
-  const errors: string[] = []
-  const warnings: string[] = []
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
 
   if (!url || url.trim().length === 0) {
     errors.push('URL은 필수입니다')
@@ -192,7 +202,7 @@ export function validateUrl(
 
   try {
     const urlObj = new URL(url.trim())
-    
+
     // Protocol validation
     if (!cfg.allowedProtocols.includes(urlObj.protocol)) {
       errors.push(`허용되지 않는 프로토콜입니다: ${urlObj.protocol}`)
@@ -200,21 +210,20 @@ export function validateUrl(
 
     // Domain validation
     const hostname = urlObj.hostname.toLowerCase()
-    if (cfg.blockedDomains.some(domain => hostname.includes(domain))) {
+    if (cfg.blockedDomains.some((domain) => hostname.includes(domain))) {
       errors.push('차단된 도메인입니다')
     }
 
     // Suspicious URL patterns
-    if (MALICIOUS_PATTERNS.some(pattern => pattern.test(url))) {
+    if (MALICIOUS_PATTERNS.some((pattern) => pattern.test(url))) {
       errors.push('의심스러운 URL 패턴이 감지되었습니다')
     }
 
     // Check for URL shorteners (potential security risk)
     const shorteners = ['bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'short.link']
-    if (shorteners.some(shortener => hostname.includes(shortener))) {
+    if (shorteners.some((shortener) => hostname.includes(shortener))) {
       warnings.push('단축 URL은 보안상 권장되지 않습니다')
     }
-
   } catch (error) {
     errors.push('유효하지 않은 URL 형식입니다')
   }
@@ -223,7 +232,7 @@ export function validateUrl(
     isValid: errors.length === 0,
     errors,
     warnings,
-    sanitizedValue: url.trim()
+    sanitizedValue: url.trim(),
   }
 }
 
@@ -232,11 +241,11 @@ export function validateUrl(
  */
 export function validateHtmlContent(
   content: string,
-  config: Partial<SecurityConfig> = {}
+  config: Partial<SecurityConfig> = {},
 ): ValidationResult {
   const cfg = { ...DEFAULT_SECURITY_CONFIG, ...config }
-  const errors: string[] = []
-  const warnings: string[] = []
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
 
   // Length validation
   if (content.length > cfg.maxContentLength) {
@@ -252,12 +261,37 @@ export function validateHtmlContent(
   // Sanitize HTML content
   const sanitizedContent = DOMPurify.sanitize(content, {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'a', 'img', 'table', 'thead', 'tbody',
-      'tr', 'th', 'td', 'div', 'span', 'pre', 'code'
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'a',
+      'img',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'div',
+      'span',
+      'pre',
+      'code',
     ],
     ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id'],
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   })
 
   // Check if content was significantly modified during sanitization
@@ -269,7 +303,7 @@ export function validateHtmlContent(
     isValid: errors.length === 0,
     errors,
     warnings,
-    sanitizedValue: sanitizedContent
+    sanitizedValue: sanitizedContent,
   }
 }
 
@@ -277,8 +311,8 @@ export function validateHtmlContent(
  * Detects malicious content patterns
  */
 function detectMaliciousContent(input: string): ValidationResult {
-  const errors: string[] = []
-  const warnings: string[] = []
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
 
   // Check against malicious patterns
   for (const pattern of MALICIOUS_PATTERNS) {
@@ -290,18 +324,20 @@ function detectMaliciousContent(input: string): ValidationResult {
 
   // Check for suspicious keywords
   const lowerInput = input.toLowerCase()
-  const foundKeywords = SUSPICIOUS_KEYWORDS.filter(keyword => 
-    lowerInput.includes(keyword.toLowerCase())
+  const foundKeywords = SUSPICIOUS_KEYWORDS.filter((keyword) =>
+    lowerInput.includes(keyword.toLowerCase()),
   )
 
   if (foundKeywords.length > 0) {
-    warnings.push(`의심스러운 키워드가 감지되었습니다: ${foundKeywords.join(', ')}`)
+    warnings.push(
+      `의심스러운 키워드가 감지되었습니다: ${foundKeywords.join(', ')}`,
+    )
   }
 
   // Check for excessive special characters (potential obfuscation)
   const specialCharCount = (input.match(/[^a-zA-Z0-9가-힣\s]/g) || []).length
   const specialCharRatio = specialCharCount / input.length
-  
+
   if (specialCharRatio > 0.3) {
     warnings.push('특수 문자 비율이 높습니다 (난독화 시도 가능성)')
   }
@@ -309,7 +345,7 @@ function detectMaliciousContent(input: string): ValidationResult {
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   }
 }
 
@@ -332,11 +368,11 @@ function sanitizeConfigObject(obj: any, config: SecurityConfig): any {
   if (typeof obj === 'string') {
     return sanitizeText(obj)
   }
-  
+
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeConfigObject(item, config))
+    return obj.map((item) => sanitizeConfigObject(item, config))
   }
-  
+
   if (obj && typeof obj === 'object') {
     const sanitized: any = {}
     for (const [key, value] of Object.entries(obj)) {
@@ -345,7 +381,7 @@ function sanitizeConfigObject(obj: any, config: SecurityConfig): any {
     }
     return sanitized
   }
-  
+
   return obj
 }
 
@@ -355,43 +391,43 @@ function sanitizeConfigObject(obj: any, config: SecurityConfig): any {
  */
 export function checkRateLimit(
   userId: string,
-  config: Partial<SecurityConfig> = {}
+  config: Partial<SecurityConfig> = {},
 ): { allowed: boolean; remainingActions: number; resetTime: number } {
   const cfg = { ...DEFAULT_SECURITY_CONFIG, ...config }
   const now = Date.now()
-  
+
   // Clean up expired entries
   for (const [key, entry] of rateLimitMap.entries()) {
     if (now - entry.windowStart > cfg.rateLimitWindow) {
       rateLimitMap.delete(key)
     }
   }
-  
+
   // Get or create rate limit entry
   let entry = rateLimitMap.get(userId)
   if (!entry || now - entry.windowStart > cfg.rateLimitWindow) {
     entry = {
       userId,
       actions: 0,
-      windowStart: now
+      windowStart: now,
     }
     rateLimitMap.set(userId, entry)
   }
-  
+
   // Check if limit exceeded
   const allowed = entry.actions < cfg.maxActionsPerWindow
   const remainingActions = Math.max(0, cfg.maxActionsPerWindow - entry.actions)
   const resetTime = entry.windowStart + cfg.rateLimitWindow
-  
+
   // Increment action count if allowed
   if (allowed) {
     entry.actions++
   }
-  
+
   return {
     allowed,
     remainingActions,
-    resetTime
+    resetTime,
   }
 }
 
@@ -403,44 +439,48 @@ export function validateMenuData(data: {
   type: string
   config: any
   userId: string
-  existingNames?: string[]
+  existingNames?: Array<string>
 }): ValidationResult {
-  const errors: string[] = []
-  const warnings: string[] = []
-  
+  const errors: Array<string> = []
+  const warnings: Array<string> = []
+
   // Rate limiting check
   const rateLimit = checkRateLimit(data.userId)
   if (!rateLimit.allowed) {
-    errors.push(`요청 한도를 초과했습니다. ${new Date(rateLimit.resetTime).toLocaleTimeString()}에 재시도하세요.`)
+    errors.push(
+      `요청 한도를 초과했습니다. ${new Date(rateLimit.resetTime).toLocaleTimeString()}에 재시도하세요.`,
+    )
   }
-  
+
   // Validate name
   const nameValidation = validateMenuName(data.name, data.existingNames)
   if (!nameValidation.isValid) {
     errors.push(...nameValidation.errors)
   }
   warnings.push(...nameValidation.warnings)
-  
+
   // Validate config
   const configValidation = validateMenuConfig(data.config)
   if (!configValidation.isValid) {
     errors.push(...configValidation.errors)
   }
   warnings.push(...configValidation.warnings)
-  
+
   // Type-specific validation
   if (data.type === 'external_link' && data.config.links) {
     for (const link of data.config.links) {
       if (link.url) {
         const urlValidation = validateUrl(link.url)
         if (!urlValidation.isValid) {
-          errors.push(`링크 "${link.name || link.url}": ${urlValidation.errors.join(', ')}`)
+          errors.push(
+            `링크 "${link.name || link.url}": ${urlValidation.errors.join(', ')}`,
+          )
         }
         warnings.push(...urlValidation.warnings)
       }
     }
   }
-  
+
   if (data.type === 'custom_page' && data.config.content) {
     const contentValidation = validateHtmlContent(data.config.content)
     if (!contentValidation.isValid) {
@@ -448,15 +488,15 @@ export function validateMenuData(data: {
     }
     warnings.push(...contentValidation.warnings)
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
     warnings,
     sanitizedValue: {
       name: nameValidation.sanitizedValue || data.name,
-      config: configValidation.sanitizedValue || data.config
-    }
+      config: configValidation.sanitizedValue || data.config,
+    },
   }
 }
 
@@ -474,25 +514,29 @@ export interface SecurityAuditEntry {
 /**
  * Logs security events for monitoring
  */
-export function logSecurityEvent(entry: Omit<SecurityAuditEntry, 'timestamp'>): void {
+export function logSecurityEvent(
+  entry: Omit<SecurityAuditEntry, 'timestamp'>,
+): void {
   const auditEntry: SecurityAuditEntry = {
     ...entry,
-    timestamp: new Date()
+    timestamp: new Date(),
   }
-  
+
   // In a real application, this would send to a logging service
   console.warn('Security Event:', auditEntry)
-  
+
   // Store in localStorage for debugging (in production, use proper logging)
   try {
-    const existingLogs = JSON.parse(localStorage.getItem('security_audit_log') || '[]')
+    const existingLogs = JSON.parse(
+      localStorage.getItem('security_audit_log') || '[]',
+    )
     existingLogs.push(auditEntry)
-    
+
     // Keep only last 100 entries
     if (existingLogs.length > 100) {
       existingLogs.splice(0, existingLogs.length - 100)
     }
-    
+
     localStorage.setItem('security_audit_log', JSON.stringify(existingLogs))
   } catch (error) {
     console.error('Failed to log security event:', error)

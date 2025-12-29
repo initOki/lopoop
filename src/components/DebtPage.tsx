@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, X, Edit2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, Edit2, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Debt } from '../types/debt'
 import { supabase } from '../lib/supabase'
+import type { Debt } from '../types/debt'
 
 // Supabase 데이터베이스 타입 정의
 interface DebtRow {
@@ -25,7 +25,7 @@ interface DebtItem {
 }
 
 export default function DebtPage() {
-  const [debts, setDebts] = useState<Debt[]>([])
+  const [debts, setDebts] = useState<Array<Debt>>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
@@ -33,7 +33,7 @@ export default function DebtPage() {
     debtor: '',
     creditor: '',
   })
-  const [debtItems, setDebtItems] = useState<DebtItem[]>([
+  const [debtItems, setDebtItems] = useState<Array<DebtItem>>([
     { id: crypto.randomUUID(), amount: '', item: '', description: '' },
   ])
 
@@ -107,8 +107,8 @@ export default function DebtPage() {
 
       if (error) throw error
 
-      const formattedDebts: Debt[] =
-        (data as DebtRow[])?.map((debt) => ({
+      const formattedDebts: Array<Debt> =
+        (data as Array<DebtRow>)?.map((debt) => ({
           id: debt.id,
           debtor: debt.debtor,
           creditor: debt.creditor,

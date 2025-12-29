@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { useCustomMenus } from '../hooks/useCustomMenus'
 import { MenuTypeFactory } from './MenuTypeFactory'
 import type { CustomMenu } from '../types/custom-menu'
@@ -11,7 +11,7 @@ interface MenuRouterProps {
 
 export function MenuRouter({ userId }: MenuRouterProps) {
   const navigate = useNavigate()
-  const { menuId } = useParams({ strict: false }) as { menuId?: string }
+  const { menuId } = useParams({ strict: false })
   const { menus, loading, error } = useCustomMenus(userId)
   const [currentMenu, setCurrentMenu] = useState<CustomMenu | null>(null)
   const [menuNotFound, setMenuNotFound] = useState(false)
@@ -24,7 +24,7 @@ export function MenuRouter({ userId }: MenuRouterProps) {
       return
     }
 
-    const menu = menus.find(m => m.id === menuId)
+    const menu = menus.find((m) => m.id === menuId)
     if (menu) {
       setCurrentMenu(menu)
       setMenuNotFound(false)
@@ -122,9 +122,7 @@ export function MenuRouter({ userId }: MenuRouterProps) {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             잘못된 접근입니다
           </h2>
-          <p className="text-gray-600 mb-4">
-            유효한 메뉴 ID가 필요합니다.
-          </p>
+          <p className="text-gray-600 mb-4">유효한 메뉴 ID가 필요합니다.</p>
           <button
             onClick={handleBack}
             className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
@@ -161,10 +159,7 @@ export function MenuRouter({ userId }: MenuRouterProps) {
 
         {/* Menu content */}
         <div className="py-[20px] bg-linear-to-br from-gray-900 via-gray-800 to-gray-900">
-          <MenuTypeFactory
-            menu={currentMenu}
-            onUpdate={handleMenuUpdate}
-          />
+          <MenuTypeFactory menu={currentMenu} onUpdate={handleMenuUpdate} />
         </div>
       </div>
     )

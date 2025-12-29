@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { X, AlertCircle, Info, AlertTriangle } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { AlertCircle, AlertTriangle, Info, X } from 'lucide-react'
 import {
-  MenuType,
-  DEFAULT_MENU_CONFIGS,
-  type CustomMenu,
-  type MenuConfig,
+  DEFAULT_MENU_CONFIGS
+  
+  
 } from '../types/custom-menu'
-import { validateMenu, getUserMenuNames } from '../lib/custom-menu-utils'
+import { getUserMenuNames, validateMenu } from '../lib/custom-menu-utils'
+import type {
+  CustomMenu,MenuConfig, MenuType} from '../types/custom-menu';
 
 export interface MenuEditorProps {
   userId: string
@@ -48,9 +49,9 @@ export function MenuEditor({
       DEFAULT_MENU_CONFIGS[menu.type as MenuType],
   })
 
-  const [existingNames, setExistingNames] = useState<string[]>([])
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [validationWarnings, setValidationWarnings] = useState<string[]>([])
+  const [existingNames, setExistingNames] = useState<Array<string>>([])
+  const [validationErrors, setValidationErrors] = useState<Array<string>>([])
+  const [validationWarnings, setValidationWarnings] = useState<Array<string>>([])
   const [typeChangeWarning] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
