@@ -34,6 +34,7 @@ import {
   getNextWednesday6AM,
 } from '../../lib/weekly-reset'
 import type { MenuComponentProps } from '../../types/custom-menu'
+import { cn } from '@/lib/utils'
 
 const MAX_CHARACTERS = 20
 const DEFAULT_CHARACTERS = 6
@@ -79,6 +80,9 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
   const [addCharacterKeyword, setAddCharacterKeyword] = useState('')
   const [characterToDelete, setCharacterToDelete] =
     useState<PersonalCharacter | null>(null)
+  const [characterImages, setCharacterImages] = useState<
+    Record<string, string | null>
+  >({})
   const userId = menu.user_id
   const menuId = menu.id
 
@@ -165,6 +169,34 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
       console.error('Error fetching character raids:', error)
     }
   }
+
+  // 캐릭터 이미지 로딩
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      if (characters.length === 0) return
+      const names = characters.map((c) => c.character_name)
+      const missing = names.filter((n) => !(n in characterImages))
+      if (missing.length === 0) return
+      const results = await Promise.all(
+        missing.map(async (name) => {
+          const profile = await fetchCharacterProfile(name)
+          return [name, profile?.CharacterImage ?? null] as const
+        }),
+      )
+      if (canceled) return
+      setCharacterImages((prev) => {
+        const next = { ...prev }
+        results.forEach(([name, url]) => {
+          next[name] = url
+        })
+        return next
+      })
+    })()
+    return () => {
+      canceled = true
+    }
+  }, [characters])
 
   // 캐릭터 레벨에 맞는 레이드 3개 찾기
   const findSuitableRaids = (itemLevel: number) => {
@@ -698,45 +730,51 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
                 {characters.map((char) => {
                   const raids = characterRaids[char.id] || []
                   const clearedCount = raids.filter((r) => r.is_cleared).length
+                  const imageUrl = characterImages[char.character_name] || null
 
                   return (
                     <div
                       key={char.id}
-                      className="bg-background border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                      className="bg-slate-900 border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                     >
                       {/* 캐릭터 헤더 */}
-                      <div className="p-4 bg-muted/30 relative">
+                      <div className="relative h-44 bg-black overflow-hidden">
+                        {imageUrl && (
+                          <img
+                            src={imageUrl}
+                            alt={char.character_name}
+                            className="absolute left-14 top-2 inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+                        <div className="absolute top-2 left-3 text-xs text-white/70">
+                          {char.server_name}
+                        </div>
                         <div className="absolute top-2 right-2">
                           <button
                             onClick={() => confirmDeleteCharacter(char)}
-                            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            className="p-1.5 text-white/70 hover:text-destructive hover:bg-destructive/20 rounded-lg transition-colors"
                             title="삭제"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-
-                        <div className="flex items-start gap-3 pr-8">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-bold text-foreground truncate">
-                              {char.character_name}
-                            </div>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {char.character_class}
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              <span className="font-medium text-primary">
-                                Lv. {char.item_level.toLocaleString()}
-                              </span>
-                              <span>•</span>
-                              <span className="truncate">
-                                {char.server_name}
-                              </span>
-                            </div>
+                        <div className="absolute bottom-3 left-3 pr-10">
+                          <div className="text-[14px] font-bold text-white truncate">
+                            {char.character_name}
+                          </div>
+                          <div className="text-sm text-white/80 truncate">
+                            {char.character_class}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs mt-1">
+                            <span className="font-semibold text-primary">
+                              Lv. {char.item_level.toLocaleString()}
+                            </span>
                             {char.combat_power && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                전투력 {char.combat_power}
-                              </div>
+                              <span className="text-white text-medium">
+                                {char.combat_power}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -744,16 +782,14 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
 
                       {/* 레이드 목록 */}
                       {raids.length > 0 && (
-                        <div className="p-4 border-t border-border">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                              레이드
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
+                        <div className="border-t border-border">
+                          <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white">
+                            <h4 className="text-sm font-semibold">레이드</h4>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-gray-300">
                                 {clearedCount}/{raids.length}
                               </span>
-                              <span className="text-xs text-yellow-500 font-medium">
+                              <span className="text-xs text-yellow-400 font-medium">
                                 {raids
                                   .filter((r) => r.can_receive_gold)
                                   .reduce((sum, r) => sum + r.clear_gold, 0)
@@ -762,11 +798,14 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
                               </span>
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            {raids.map((raid) => (
+                          <div>
+                            {raids.map((raid, index) => (
                               <div
                                 key={raid.id}
-                                className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                                className={cn(
+                                  'border-b flex items-start gap-2 px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 transition-colors',
+                                  index === raids.length - 1 && 'border-b-0',
+                                )}
                               >
                                 {/* 클리어 체크박스 */}
                                 <button
@@ -781,24 +820,23 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
                                   {raid.is_cleared ? (
                                     <CheckCircle2 className="w-4 h-4 text-green-500" />
                                   ) : (
-                                    <Circle className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                                    <Circle className="w-4 h-4 text-gray-400 hover:text-white" />
                                   )}
                                 </button>
 
                                 {/* 레이드 정보 */}
                                 <div className="flex-1 min-w-0">
                                   <div
-                                    className={`text-xs font-medium leading-tight ${raid.is_cleared ? 'text-muted-foreground line-through' : 'text-foreground'}`}
+                                    className={`text-xs font-medium leading-tight ${raid.is_cleared ? 'text-gray-400 line-through' : 'text-white'}`}
                                   >
                                     {raid.raid_name}
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                  <div className="flex items-center gap-2 text-xs text-gray-300 mt-0.5">
                                     <span>입장 {raid.min_item_level}</span>
-                                    <span>•</span>
-                                    <span className="text-yellow-500 font-medium">
-                                      {raid.clear_gold.toLocaleString()}G
-                                    </span>
                                   </div>
+                                  <span className="text-[12px] text-yellow-400 font-medium">
+                                    {raid.clear_gold.toLocaleString()}G
+                                  </span>
                                 </div>
 
                                 {/* 골드 수령 가능 토글 */}
@@ -819,8 +857,8 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
                                   <Coins
                                     className={`w-4 h-4 ${
                                       raid.can_receive_gold
-                                        ? 'text-yellow-500'
-                                        : 'text-muted-foreground'
+                                        ? 'text-yellow-400'
+                                        : 'text-gray-400'
                                     } hover:scale-110 transition-transform`}
                                   />
                                 </button>

@@ -17,6 +17,7 @@ export type CharacterProfile = {
   CharacterLevel: number
   ItemAvgLevel: string
   CombatPower?: string
+  CharacterImage: string
 }
 
 export async function fetchCharacterSiblings(
