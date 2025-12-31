@@ -743,7 +743,7 @@ export function PersonalMenuComponent({ menu }: MenuComponentProps) {
                           <img
                             src={imageUrl}
                             alt={char.character_name}
-                            className="absolute left-14 top-2 inset-0 w-full h-full object-cover"
+                            className="absolute left-14 inset-0 w-full h-full object-contain object-center"
                             loading="lazy"
                           />
                         )}
