@@ -17,4 +17,6 @@ export const raidList: Array<RaidInfo> = [
   { name: '4막 / 아르모체 하드', minItemLevel: 1720, clearGold: 42000 },
   { name: '종막 / 카제로스 노말', minItemLevel: 1710, clearGold: 40000 },
   { name: '종막 / 카제로스 하드', minItemLevel: 1730, clearGold: 52000 },
+  { name: '그림자 / 세르카 노말', minItemLevel: 1710, clearGold: 35000 },
+  { name: '그림자 / 세르카 하드', minItemLevel: 1730, clearGold: 44000 },
 ]
