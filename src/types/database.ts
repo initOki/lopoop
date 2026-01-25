@@ -429,6 +429,27 @@ export type Database = {
         }
         Relationships: []
       }
+      raid_schedule_resets: {
+        Row: {
+          key: string
+          last_reset_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          last_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          last_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       schedules: {
         Row: {
           created_at: string

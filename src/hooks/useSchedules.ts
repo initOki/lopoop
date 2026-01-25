@@ -4,53 +4,100 @@ import type { RaidSchedule, ScheduleRow } from '@/types/schedule'
 import { supabase } from '@/lib/supabase'
 import { getNextWednesday6AM, rowToSchedule } from '@/utils/scheduleUtils'
 
-const LAST_RESET_KEY = 'raid_schedule_last_reset'
+const RESET_RECORD_KEY = 'global'
 
 export function useSchedules() {
   const [schedules, setSchedules] = useState<Array<RaidSchedule>>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // 매주 수요일 오전 6시 체크 및 초기화
-  const checkAndResetIfNeeded = () => {
+  const checkAndResetIfNeeded = async () => {
     const now = new Date()
-    const lastReset = localStorage.getItem(LAST_RESET_KEY)
 
-    if (!lastReset) {
-      localStorage.setItem(LAST_RESET_KEY, now.toISOString())
-      return
-    }
+    try {
+      const { data, error } = await supabase
+        .from('raid_schedule_resets')
+        .select('last_reset_at')
+        .eq('key', RESET_RECORD_KEY)
+        .single()
 
-    const lastResetDate = new Date(lastReset)
-    const nextWednesday = getNextWednesday6AM(lastResetDate)
+      if (error && error.code !== 'PGRST116') {
+        throw error
+      }
 
-    if (now >= nextWednesday) {
-      resetAllCompletions()
-      localStorage.setItem(LAST_RESET_KEY, now.toISOString())
+      if (!data) {
+        await supabase
+          .from('raid_schedule_resets')
+          .upsert(
+            {
+              key: RESET_RECORD_KEY,
+              last_reset_at: now.toISOString(),
+            },
+            { onConflict: 'key' },
+          )
+        return
+      }
+
+      const lastResetDate = new Date(data.last_reset_at)
+      const nextWednesday = getNextWednesday6AM(lastResetDate)
+
+      if (now < nextWednesday) return
+
+      const { data: claimed, error: claimError } = await supabase
+        .from('raid_schedule_resets')
+        .update({ last_reset_at: now.toISOString() })
+        .eq('key', RESET_RECORD_KEY)
+        .eq('last_reset_at', data.last_reset_at)
+        .select('key')
+
+      if (claimError) throw claimError
+      if (!claimed || claimed.length === 0) return
+
+      try {
+        await resetAllCompletions()
+      } catch (resetError) {
+        await supabase
+          .from('raid_schedule_resets')
+          .update({ last_reset_at: data.last_reset_at })
+          .eq('key', RESET_RECORD_KEY)
+        throw resetError
+      }
+    } catch (error) {
+      console.error('Error checking schedule reset:', error)
     }
   }
 
   // 모든 완료 상태 초기화
   const resetAllCompletions = async () => {
-    try {
-      const { error } = await supabase
-        .from('schedules')
-        .update({ is_completed: false })
-        .neq('id', 0)
+    const { error } = await supabase
+      .from('schedules')
+      .update({ is_completed: false })
+      .neq('id', 0)
 
-      if (error) throw error
+    if (error) throw error
 
-      toast.success('주간 레이드가 초기화되었습니다.')
-    } catch (error) {
-      console.error('Error resetting completions:', error)
-    }
+    toast.success('주간 레이드가 초기화되었습니다.')
   }
 
   // 수동 초기화
   const handleManualReset = async () => {
     if (!confirm('모든 레이드 완료 상태를 초기화하시겠습니까?')) return
 
-    await resetAllCompletions()
-    localStorage.setItem(LAST_RESET_KEY, new Date().toISOString())
+    try {
+      const now = new Date().toISOString()
+      await resetAllCompletions()
+      await supabase
+        .from('raid_schedule_resets')
+        .upsert(
+          {
+            key: RESET_RECORD_KEY,
+            last_reset_at: now,
+          },
+          { onConflict: 'key' },
+        )
+    } catch (error) {
+      console.error('Error manual resetting schedules:', error)
+    }
   }
 
   const fetchSchedules = async () => {
@@ -108,7 +155,7 @@ export function useSchedules() {
   }
 
   useEffect(() => {
-    checkAndResetIfNeeded()
+    void checkAndResetIfNeeded()
     fetchSchedules()
 
     // 실시간 구독
